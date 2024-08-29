@@ -28,6 +28,12 @@ jobs:
       - name: Build
         run: ./gradlew build
 
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: build/libs/
+
       - name: Push build artifacts to main branch
         if: github.ref == 'refs/heads/main' && github.event_name == 'push' && github.event.pull_request == null
         env:
@@ -38,6 +44,7 @@ jobs:
         with:
           github-token: ${{ secrets.MY_GITHUB_TOKEN }}
           script: |
+            const artifacts = github.actions.getArtifact('build-artifacts');
             github.repos.createCommit({
               owner: github.repository_owner,
               repo: github.repository,
@@ -45,7 +52,7 @@ jobs:
               files: [
                 {
                   path: '/',
-                  content: 'Automated build'
+                  content: artifacts
                 }
               ]
             })
