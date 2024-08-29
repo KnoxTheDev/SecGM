@@ -25,12 +25,12 @@ public class SecGM implements ModInitializer {
 
     private void registerCommands() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            registerSecGMCommand(dispatcher);
+            registersecgmCommand(dispatcher);
         });
     }
 
-    private void registerSecGMCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
-        dispatcher.register(CommandManager.literal("SecGM")
+    private void registersecgmCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
+        dispatcher.register(CommandManager.literal("secgm")
                 .then(CommandManager.argument("mode", IntegerArgumentType.integer(0, 3))
                         .executes(this::setGameMode)));
     }
