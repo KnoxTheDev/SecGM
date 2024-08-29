@@ -29,9 +29,9 @@ jobs:
         if: ${{ matrix.java == '21' }} # Only create a release for Java 21
         uses: actions/create-release@v1
         with:
-          tag_name: ${{ github.sha }}
-          release_name: Release ${{ github.sha }}
-          body: 'Release created by GitHub Actions'
+          tag_name: build-${{ github.run_number }}
+          release_name: Build ${{ github.run_number }}
+          body: 'Automated release created by GitHub Actions'
         env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
       - name: upload release assets
