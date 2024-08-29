@@ -58,15 +58,15 @@ public class SecGM implements ModInitializer {
                     gameMode = GameMode.SPECTATOR;
                     break;
                 default:
-                    source.sendFeedback(Text.of("Invalid game mode! Use 0 for Survival, 1 for Creative, 2 for Adventure, or 3 for Spectator."), false);
+                    source.sendFeedback(() -> Text.of("Invalid game mode! Use 0 for Survival, 1 for Creative, 2 for Adventure, or 3 for Spectator."), false);
                     return 1;
             }
 
-            // Set the game mode without broadcasting to the server
-            player.setGameMode(gameMode);
+            // Use changeGameMode() instead of setGameMode() if setGameMode() is unavailable
+            player.changeGameMode(gameMode);
             player.sendMessage(Text.of("Game mode changed to " + gameMode.getName()), false);
         } else {
-            source.sendFeedback(Text.of("This command can only be executed by a player."), false);
+            source.sendFeedback(() -> Text.of("This command can only be executed by a player."), false);
         }
 
         return 1;
