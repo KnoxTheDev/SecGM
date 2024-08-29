@@ -1,8 +1,3 @@
-# Automatically build the project and run any configured tests for every push
-# and submitted pull request. This can help catch issues that only occur on
-# certain platforms or Java versions, and provides a first line of defence
-# against bad commits.
-
 name: build
 on: [pull_request, push]
 
@@ -16,56 +11,36 @@ jobs:
         ]
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout repository
+      - name: checkout repository
         uses: actions/checkout@v4
-        
-      - name: Validate gradle wrapper
+      - name: validate gradle wrapper
         uses: gradle/wrapper-validation-action@v2
-        
-      - name: Setup JDK ${{ matrix.java }}
+      - name: setup jdk ${{ matrix.java }}
         uses: actions/setup-java@v4
         with:
           java-version: ${{ matrix.java }}
           distribution: 'microsoft'
-          
-      - name: Make gradle wrapper executable
+      - name: make gradle wrapper executable
         run: chmod +x ./gradlew
-        
-      - name: Build
+      - name: build
         run: ./gradlew build
-        
-      - name: Capture build artifacts
-        if: ${{ matrix.java == '21' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: Artifacts
-          path: build/libs/*.jar
-          
-  release:
-    needs: build
-    runs-on: ubuntu-22.04
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }} # Only run on pushes to the main branch
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        
-      - name: Create release
+      - name: create release
         id: create_release
+        if: ${{ matrix.java == '21' }} # Only create a release for Java 21
         uses: actions/create-release@v1
         with:
-          tag_name: v${{ github.run_number }}
-          release_name: Release ${{ github.run_number }}
-          body: |
-            New release generated automatically by GitHub Actions.
-          draft: false
-          prerelease: false
+          tag_name: ${{ github.sha }}
+          release_name: Release ${{ github.sha }}
+          body: 'Release created by GitHub Actions'
         env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }} # Use your secret
-
-      - name: Upload release assets
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: build/libs/*.jar
-          asset_name: myproject-${{ github.run_number }}.jar
-          asset_content_type: application/java-archive
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+      - name: upload release assets
+        if: ${{ matrix.java == '21' }} # Only upload assets for Java 21
+        run: |
+          for file in build/libs/*.jar; do
+            echo "Uploading $file"
+            curl -H "Authorization: token ${{ secrets.MY_GITHUB_TOKEN }}" \
+                 -H "Content-Type: $(file --mime-type -b "$file")" \
+                 --data-binary @"$file" \
+                 "${{ steps.create_release.outputs.upload_url }}?name=$(basename "$file")"
+          done
