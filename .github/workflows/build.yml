@@ -31,12 +31,12 @@ jobs:
       - name: Push build artifacts to main branch
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPO: ${{ github.repository }}
           GITHUB_SHA: ${{ github.sha }}
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          git remote add origin https://$GITHUB_TOKEN@github.com/$GITHUB_REPO.git
+          git remote set-url origin https://$GITHUB_TOKEN@github.com/$GITHUB_REPO.git || git remote add origin https://$GITHUB_TOKEN@github.com/$GITHUB_REPO.git
           git push origin main --force --follow-tags
           git push origin main:main --follow-tags
