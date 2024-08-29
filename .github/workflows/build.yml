@@ -34,6 +34,12 @@ jobs:
           name: build-artifacts
           path: build/libs/
 
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-artifacts
+          path: ./build-artifacts
+
       - name: Push build artifacts to main branch
         if: github.ref == 'refs/heads/main' && github.event_name == 'push' && github.event.pull_request == null
         env:
@@ -44,7 +50,8 @@ jobs:
         with:
           github-token: ${{ secrets.MY_GITHUB_TOKEN }}
           script: |
-            const artifacts = github.actions.getArtifact('build-artifacts');
+            const fs = require('fs');
+            const artifacts = fs.readFileSync('./build-artifacts', { encoding: 'utf8' });
             github.repos.createCommit({
               owner: github.repository_owner,
               repo: github.repository,
