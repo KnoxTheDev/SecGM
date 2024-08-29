@@ -29,14 +29,23 @@ jobs:
         run: ./gradlew build
 
       - name: Push build artifacts to main branch
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && github.event.pull_request == null
         env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
           GITHUB_REPO: ${{ github.repository }}
           GITHUB_SHA: ${{ github.sha }}
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
-          git remote set-url origin https://$GITHUB_TOKEN@github.com/$GITHUB_REPO.git || git remote add origin https://$GITHUB_TOKEN@github.com/$GITHUB_REPO.git
-          git push origin main --force --follow-tags
-          git push origin main:main --follow-tags
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.MY_GITHUB_TOKEN }}
+          script: |
+            github.repos.createCommit({
+              owner: github.repository_owner,
+              repo: github.repository,
+              message: 'Automated build',
+              files: [
+                {
+                  path: '/',
+                  content: 'Automated build'
+                }
+              ]
+            })
