@@ -51,15 +51,21 @@ jobs:
           github-token: ${{ secrets.MY_GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            const artifacts = fs.readFileSync('./build-artifacts', { encoding: 'utf8' });
-            github.repos.createCommit({
-              owner: github.repository_owner,
-              repo: github.repository,
-              message: 'Automated build',
-              files: [
-                {
-                  path: '/',
-                  content: artifacts
-                }
-              ]
-            })
+            const path = require('path');
+            const artifactsDir = './build-artifacts';
+            const files = fs.readdirSync(artifactsDir);
+            files.forEach(file => {
+              const filePath = path.join(artifactsDir, file);
+              const fileContent = fs.readFileSync(filePath, { encoding: 'utf8' });
+              github.repos.createCommit({
+                owner: github.repository_owner,
+                repo: github.repository,
+                message: `Automated build: ${file}`,
+                files: [
+                  {
+                    path: `/${file}`,
+                    content: fileContent
+                  }
+                ]
+              });
+            });
