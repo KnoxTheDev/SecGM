@@ -1,6 +1,6 @@
 # SecGM Mod
 
-SecGM is a simple Minecraft Fabric mod that adds a private `/secgm` command, allowing players to switch between game modes (Survival, Creative, Adventure, Spectator) using numbers (`0`, `1`, `2`, `3`) without broadcasting their actions to the server or other players. This mod is ideal for players who want to change game modes discreetly.
+SecGM is a Minecraft Fabric mod that adds a private `/secgm` command, allowing players to switch between game modes (Survival, Creative, Adventure, Spectator) using numbers (`0`, `1`, `2`, `3`) without broadcasting their actions to the server or other players. This mod is ideal for players who want to change game modes discreetly.
 
 ## Features
 
@@ -12,16 +12,22 @@ SecGM is a simple Minecraft Fabric mod that adds a private `/secgm` command, all
 - Commands are executed without broadcasting to the server.
 - Lightweight and easy to install.
 
+## Supported Minecraft Versions
+
+- **1.18.x**
+- **1.19.x**
+- **1.20.x**
+
 ## Requirements
 
-- Minecraft 1.18+
-- Fabric Loader
-- Fabric API
+- Fabric Loader (version compatible with the Minecraft versions listed)
+- Fabric API (version compatible with the Minecraft versions listed)
+- Java 17 or higher
 
 ## Installation
 
 1. Ensure you have the Fabric Loader and Fabric API installed.
-2. Download the latest version of the SecGM mod from the [releases page](#).
+2. Download the latest version of the SecGM mod from the [releases page](https://github.com/KnoxTheDev/SecGM/releases).
 3. Place the downloaded `.jar` file in the `mods` folder of your Minecraft directory.
 
 ## Usage
