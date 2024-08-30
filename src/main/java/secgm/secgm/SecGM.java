@@ -9,9 +9,7 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.network.chat.Component; // Updated import
-import net.minecraft.network.chat.Text; // Keep if needed
-import net.minecraft.util.Formatting;
+import net.minecraft.item.ItemStack;
 import net.minecraft.world.GameMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +17,7 @@ import org.slf4j.LoggerFactory;
 public class SecGM implements ModInitializer {
     public static final String MOD_ID = "secgm";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+    private final TextHelper textHelper = TextHelperFactory.getTextHelper();
 
     @Override
     public void onInitialize() {
@@ -55,7 +54,6 @@ public class SecGM implements ModInitializer {
         int mode = IntegerArgumentType.getInteger(context, "mode");
         ServerCommandSource source = context.getSource();
 
-        // Check if the command executor is a player
         if (source.getEntity() instanceof ServerPlayerEntity) {
             ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
             GameMode gameMode;
@@ -74,14 +72,14 @@ public class SecGM implements ModInitializer {
                     gameMode = GameMode.SPECTATOR;
                     break;
                 default:
-                    source.sendFeedback(() -> Component.literal("Invalid game mode! Use 0 for Survival, 1 for Creative, 2 for Adventure, or 3 for Spectator."), false);
+                    source.sendFeedback(Text.literal("Invalid game mode! Use 0 for Survival, 1 for Creative, 2 for Adventure, or 3 for Spectator."), false);
                     return 1;
             }
 
             player.changeGameMode(gameMode);
-            player.sendMessage(Component.literal("Game mode changed to " + gameMode.getName()), false);
+            player.sendMessage(Text.literal("Game mode changed to " + gameMode.getName()), false);
         } else {
-            source.sendFeedback(() -> Component.literal("This command can only be executed by a player."), false);
+            source.sendFeedback(Text.literal("This command can only be executed by a player."), false);
         }
 
         return 1;
@@ -90,42 +88,38 @@ public class SecGM implements ModInitializer {
     private int vanish(CommandContext<ServerCommandSource> context) {
         ServerCommandSource source = context.getSource();
 
-        // Check if the command executor is a player
         if (source.getEntity() instanceof ServerPlayerEntity) {
             ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
 
-            // Toggle vanish mode
             if (player.isInvisible()) {
-                // Unvanish
                 player.setInvisible(false);
                 player.getInventory().armor.forEach(itemStack -> {
                     if (!itemStack.isEmpty()) {
-                        itemStack.setCustomName(Component.literal(itemStack.getName().getString())); // Use Component.literal
+                        textHelper.setCustomName(itemStack, textHelper.getName(itemStack));
                     }
-                }); // Show worn armor
+                });
                 player.getInventory().main.forEach(itemStack -> {
                     if (!itemStack.isEmpty()) {
-                        itemStack.setCustomName(Component.literal(itemStack.getName().getString())); // Use Component.literal
+                        textHelper.setCustomName(itemStack, textHelper.getName(itemStack));
                     }
-                }); // Show held items
-                player.sendMessage(Component.literal("You are no longer vanished.").formatted(Formatting.YELLOW), false);
+                });
+                player.sendMessage(Text.literal("You are no longer vanished."), false);
             } else {
-                // Vanish
                 player.setInvisible(true);
                 player.getInventory().armor.forEach(itemStack -> {
                     if (!itemStack.isEmpty()) {
-                        itemStack.setCustomName(Component.literal("Hidden Armor")); // Use Component.literal
+                        textHelper.setCustomName(itemStack, "Hidden Armor");
                     }
-                }); // Hide worn armor
+                });
                 player.getInventory().main.forEach(itemStack -> {
                     if (!itemStack.isEmpty()) {
-                        itemStack.setCustomName(Component.literal("Hidden Item")); // Use Component.literal
+                        textHelper.setCustomName(itemStack, "Hidden Item");
                     }
-                }); // Hide held items
-                player.sendMessage(Component.literal("You are now vanished.").formatted(Formatting.YELLOW), false);
+                });
+                player.sendMessage(Text.literal("You are now vanished."), false);
             }
         } else {
-            source.sendFeedback(() -> Component.literal("This command can only be executed by a player."), false);
+            source.sendFeedback(Text.literal("This command can only be executed by a player."), false);
         }
 
         return 1;
@@ -135,13 +129,12 @@ public class SecGM implements ModInitializer {
         String name = StringArgumentType.getString(context, "name");
         ServerCommandSource source = context.getSource();
 
-        // Check if the command executor is a player
         if (source.getEntity() instanceof ServerPlayerEntity) {
             ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
-            player.setCustomName(Component.literal(name)); // Use Component.literal
-            player.sendMessage(Component.literal("Your nickname has been set to " + name).formatted(Formatting.GREEN), false);
+            player.setCustomName(Text.literal(name));
+            player.sendMessage(Text.literal("Your nickname has been set to " + name), false);
         } else {
-            source.sendFeedback(() -> Component.literal("This command can only be executed by a player."), false);
+            source.sendFeedback(Text.literal("This command can only be executed by a player."), false);
         }
 
         return 1;
