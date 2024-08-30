@@ -38,6 +38,17 @@ jobs:
           name: Artifacts
           path: build/libs/
 
+      - name: Install GitHub CLI
+        run: sudo apt-get install gh
+
+      - name: Create Release
+        if: ${{ matrix.java == '21' && github.actor != 'github-actions' }} # Avoid commits from GitHub Actions bot
+        run: |
+          echo "${{ secrets.MY_GITHUB_TOKEN }}" | gh auth login --with-token
+          VERSION=$(date +'%Y%m%d%H%M%S')
+          gh release create "v${VERSION}" build/libs/*
+          echo "Release v${VERSION} created with build artifacts."
+
       - name: Commit and push build artifacts
         if: ${{ matrix.java == '21' && github.actor != 'github-actions' }} # Avoid commits from GitHub Actions bot
         run: |
