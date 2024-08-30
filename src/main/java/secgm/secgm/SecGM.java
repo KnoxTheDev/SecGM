@@ -97,12 +97,14 @@ public class SecGM implements ModInitializer {
             if (player.isInvisible()) {
                 // Unvanish
                 player.setInvisible(false);
-                source.getServer().getPlayerManager().broadcastChatMessage(Text.of(player.getName().getString() + " joined the game"), false);
+                // Notify all players
+                source.getServer().getPlayerManager().broadcast(Text.of(player.getName().getString() + " joined the game"));
                 player.sendMessage(Text.of("You are no longer vanished."), false);
             } else {
                 // Vanish
                 player.setInvisible(true);
-                source.getServer().getPlayerManager().broadcastChatMessage(Text.of(player.getName().getString() + " left the game"), false);
+                // Notify all players
+                source.getServer().getPlayerManager().broadcast(Text.of(player.getName().getString() + " left the game"));
                 player.sendMessage(Text.of("You are now vanished."), false);
             }
         } else {
