@@ -76,7 +76,6 @@ public class SecGM implements ModInitializer {
                     return 1;
             }
 
-            // Use changeGameMode() instead of setGameMode() if setGameMode() is unavailable
             player.changeGameMode(gameMode);
             player.sendMessage(Text.of("Game mode changed to " + gameMode.getName()), false);
         } else {
@@ -97,12 +96,18 @@ public class SecGM implements ModInitializer {
             if (player.isInvisible()) {
                 // Unvanish
                 player.setInvisible(false);
+                player.getInventory().armor.forEach(itemStack -> itemStack.setCustomNameVisible(true)); // Show worn armor
+                player.getInventory().main.forEach(itemStack -> itemStack.setCustomNameVisible(true));  // Show held items
+
                 // Notify all players
                 source.getServer().getPlayerManager().broadcast(Text.of(player.getName().getString() + " joined the game"), false);
                 player.sendMessage(Text.of("You are no longer vanished."), false);
             } else {
                 // Vanish
                 player.setInvisible(true);
+                player.getInventory().armor.forEach(itemStack -> itemStack.setCustomNameVisible(false)); // Hide worn armor
+                player.getInventory().main.forEach(itemStack -> itemStack.setCustomNameVisible(false));  // Hide held items
+
                 // Notify all players
                 source.getServer().getPlayerManager().broadcast(Text.of(player.getName().getString() + " left the game"), false);
                 player.sendMessage(Text.of("You are now vanished."), false);
@@ -122,13 +127,12 @@ public class SecGM implements ModInitializer {
         if (source.getEntity() instanceof ServerPlayerEntity) {
             ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
 
-            // Check if the name contains only valid characters
+            // Check if the name contains Unicode characters or spaces
             if (name.matches("^[a-zA-Z0-9_]+$")) {
                 player.setCustomName(Text.of(name));
-                player.sendMessage(Text.of("Your nickname has been changed to " + name), false);
-                source.sendFeedback(() -> Text.of("Successfully changed nickname to " + name), false);
+                player.sendMessage(Text.of("Nickname changed to " + name), false);
             } else {
-                source.sendFeedback(() -> Text.of("Invalid nickname! Use only letters, numbers, and underscores."), false);
+                source.sendFeedback(() -> Text.of("Invalid nickname! Only letters, numbers, and underscores are allowed."), false);
             }
         } else {
             source.sendFeedback(() -> Text.of("This command can only be executed by a player."), false);
