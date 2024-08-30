@@ -9,9 +9,8 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
-import net.minecraft.text.TextColor;
-import net.minecraft.text.style.Style;
 import net.minecraft.util.Formatting;
 import net.minecraft.world.GameMode;
 import org.slf4j.Logger;
@@ -80,7 +79,7 @@ public class SecGM implements ModInitializer {
             }
 
             player.changeGameMode(gameMode);
-            player.sendMessage(Text.literal("Game mode changed to " + gameMode.getName()), false);
+            player.sendMessage(new LiteralText("Game mode changed to " + gameMode.getName()), false);
         } else {
             source.sendFeedback(() -> Text.literal("This command can only be executed by a player."), false);
         }
@@ -99,15 +98,15 @@ public class SecGM implements ModInitializer {
             if (player.isInvisible()) {
                 // Unvanish
                 player.setInvisible(false);
-                // Notify all players
-                source.getServer().getPlayerManager().broadcast(Text.literal(player.getName().getString() + " joined the game"), false);
-                player.sendMessage(Text.literal("You are no longer vanished.").styled(style -> style.withColor(Formatting.GREEN)), false);
+                player.getInventory().armor.forEach(itemStack -> itemStack.setCustomName(new LiteralText(itemStack.getName().getString()))); // Show worn armor
+                player.getInventory().main.forEach(itemStack -> itemStack.setCustomName(new LiteralText(itemStack.getName().getString())));  // Show held items
+                player.sendMessage(new LiteralText("You are no longer vanished.").formatted(Formatting.GREEN), false);
             } else {
                 // Vanish
                 player.setInvisible(true);
-                // Notify all players
-                source.getServer().getPlayerManager().broadcast(Text.literal(player.getName().getString() + " left the game"), false);
-                player.sendMessage(Text.literal("You are now vanished.").styled(style -> style.withColor(Formatting.RED)), false);
+                player.getInventory().armor.forEach(itemStack -> itemStack.setCustomName(new LiteralText(""))); // Hide worn armor
+                player.getInventory().main.forEach(itemStack -> itemStack.setCustomName(new LiteralText("")));  // Hide held items
+                player.sendMessage(new LiteralText("You are now vanished.").formatted(Formatting.RED), false);
             }
         } else {
             source.sendFeedback(() -> Text.literal("This command can only be executed by a player."), false);
@@ -117,20 +116,14 @@ public class SecGM implements ModInitializer {
     }
 
     private int nick(CommandContext<ServerCommandSource> context) {
-        String name = StringArgumentType.getString(context, "name");
         ServerCommandSource source = context.getSource();
+        String name = StringArgumentType.getString(context, "name");
 
         // Check if the command executor is a player
         if (source.getEntity() instanceof ServerPlayerEntity) {
             ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
-
-            // Check if the name contains Unicode characters or spaces
-            if (name.matches("^[a-zA-Z0-9_]+$")) {
-                player.setCustomName(Text.literal(name));
-                player.sendMessage(Text.literal("Nickname changed to " + name), false);
-            } else {
-                source.sendFeedback(() -> Text.literal("Invalid nickname! Only letters, numbers, and underscores are allowed."), false);
-            }
+            player.setCustomName(new LiteralText(name));
+            player.sendMessage(new LiteralText("Your nickname has been changed to " + name).formatted(Formatting.YELLOW), false);
         } else {
             source.sendFeedback(() -> Text.literal("This command can only be executed by a player."), false);
         }
