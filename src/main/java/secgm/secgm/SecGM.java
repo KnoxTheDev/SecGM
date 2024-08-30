@@ -97,15 +97,31 @@ public class SecGM implements ModInitializer {
             if (player.isInvisible()) {
                 // Unvanish
                 player.setInvisible(false);
-                player.getInventory().armor.forEach(itemStack -> itemStack.setCustomName(Text.literal(itemStack.getName().getString()))); // Show worn armor
-                player.getInventory().main.forEach(itemStack -> itemStack.setCustomName(Text.literal(itemStack.getName().getString())));  // Show held items
-                player.sendMessage(Text.literal("You are no longer vanished.").formatted(Formatting.GREEN), false);
+                player.getInventory().armor.forEach(itemStack -> {
+                    if (!itemStack.isEmpty()) {
+                        itemStack.setCustomName(Text.literal(itemStack.getName().getString()));
+                    }
+                }); // Show worn armor
+                player.getInventory().main.forEach(itemStack -> {
+                    if (!itemStack.isEmpty()) {
+                        itemStack.setCustomName(Text.literal(itemStack.getName().getString()));
+                    }
+                }); // Show held items
+                player.sendMessage(Text.literal("You are no longer vanished.").formatted(Formatting.YELLOW), false);
             } else {
                 // Vanish
                 player.setInvisible(true);
-                player.getInventory().armor.forEach(itemStack -> itemStack.setCustomName(Text.literal(""))); // Hide worn armor
-                player.getInventory().main.forEach(itemStack -> itemStack.setCustomName(Text.literal("")));  // Hide held items
-                player.sendMessage(Text.literal("You are now vanished.").formatted(Formatting.RED), false);
+                player.getInventory().armor.forEach(itemStack -> {
+                    if (!itemStack.isEmpty()) {
+                        itemStack.setCustomName(Text.literal("Hidden Armor"));
+                    }
+                }); // Hide worn armor
+                player.getInventory().main.forEach(itemStack -> {
+                    if (!itemStack.isEmpty()) {
+                        itemStack.setCustomName(Text.literal("Hidden Item"));
+                    }
+                }); // Hide held items
+                player.sendMessage(Text.literal("You are now vanished.").formatted(Formatting.YELLOW), false);
             }
         } else {
             source.sendFeedback(() -> Text.literal("This command can only be executed by a player."), false);
@@ -115,14 +131,14 @@ public class SecGM implements ModInitializer {
     }
 
     private int nick(CommandContext<ServerCommandSource> context) {
-        ServerCommandSource source = context.getSource();
         String name = StringArgumentType.getString(context, "name");
+        ServerCommandSource source = context.getSource();
 
         // Check if the command executor is a player
         if (source.getEntity() instanceof ServerPlayerEntity) {
             ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
             player.setCustomName(Text.literal(name));
-            player.sendMessage(Text.literal("Your nickname has been changed to " + name).formatted(Formatting.YELLOW), false);
+            player.sendMessage(Text.literal("Your nickname has been set to " + name).formatted(Formatting.GREEN), false);
         } else {
             source.sendFeedback(() -> Text.literal("This command can only be executed by a player."), false);
         }
