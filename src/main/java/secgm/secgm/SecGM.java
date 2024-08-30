@@ -9,7 +9,8 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component; // Updated import
+import net.minecraft.network.chat.Text; // Keep if needed
 import net.minecraft.util.Formatting;
 import net.minecraft.world.GameMode;
 import org.slf4j.Logger;
@@ -73,14 +74,14 @@ public class SecGM implements ModInitializer {
                     gameMode = GameMode.SPECTATOR;
                     break;
                 default:
-                    source.sendFeedback(() -> Text.literal("Invalid game mode! Use 0 for Survival, 1 for Creative, 2 for Adventure, or 3 for Spectator."), false);
+                    source.sendFeedback(() -> Component.literal("Invalid game mode! Use 0 for Survival, 1 for Creative, 2 for Adventure, or 3 for Spectator."), false);
                     return 1;
             }
 
             player.changeGameMode(gameMode);
-            player.sendMessage(Text.literal("Game mode changed to " + gameMode.getName()), false);
+            player.sendMessage(Component.literal("Game mode changed to " + gameMode.getName()), false);
         } else {
-            source.sendFeedback(() -> Text.literal("This command can only be executed by a player."), false);
+            source.sendFeedback(() -> Component.literal("This command can only be executed by a player."), false);
         }
 
         return 1;
@@ -99,32 +100,32 @@ public class SecGM implements ModInitializer {
                 player.setInvisible(false);
                 player.getInventory().armor.forEach(itemStack -> {
                     if (!itemStack.isEmpty()) {
-                        itemStack.setCustomName(Text.literal(itemStack.getName().getString()));
+                        itemStack.setCustomName(Component.literal(itemStack.getName().getString())); // Use Component.literal
                     }
                 }); // Show worn armor
                 player.getInventory().main.forEach(itemStack -> {
                     if (!itemStack.isEmpty()) {
-                        itemStack.setCustomName(Text.literal(itemStack.getName().getString()));
+                        itemStack.setCustomName(Component.literal(itemStack.getName().getString())); // Use Component.literal
                     }
                 }); // Show held items
-                player.sendMessage(Text.literal("You are no longer vanished.").formatted(Formatting.YELLOW), false);
+                player.sendMessage(Component.literal("You are no longer vanished.").formatted(Formatting.YELLOW), false);
             } else {
                 // Vanish
                 player.setInvisible(true);
                 player.getInventory().armor.forEach(itemStack -> {
                     if (!itemStack.isEmpty()) {
-                        itemStack.setCustomName(Text.literal("Hidden Armor"));
+                        itemStack.setCustomName(Component.literal("Hidden Armor")); // Use Component.literal
                     }
                 }); // Hide worn armor
                 player.getInventory().main.forEach(itemStack -> {
                     if (!itemStack.isEmpty()) {
-                        itemStack.setCustomName(Text.literal("Hidden Item"));
+                        itemStack.setCustomName(Component.literal("Hidden Item")); // Use Component.literal
                     }
                 }); // Hide held items
-                player.sendMessage(Text.literal("You are now vanished.").formatted(Formatting.YELLOW), false);
+                player.sendMessage(Component.literal("You are now vanished.").formatted(Formatting.YELLOW), false);
             }
         } else {
-            source.sendFeedback(() -> Text.literal("This command can only be executed by a player."), false);
+            source.sendFeedback(() -> Component.literal("This command can only be executed by a player."), false);
         }
 
         return 1;
@@ -137,10 +138,10 @@ public class SecGM implements ModInitializer {
         // Check if the command executor is a player
         if (source.getEntity() instanceof ServerPlayerEntity) {
             ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
-            player.setCustomName(Text.literal(name));
-            player.sendMessage(Text.literal("Your nickname has been set to " + name).formatted(Formatting.GREEN), false);
+            player.setCustomName(Component.literal(name)); // Use Component.literal
+            player.sendMessage(Component.literal("Your nickname has been set to " + name).formatted(Formatting.GREEN), false);
         } else {
-            source.sendFeedback(() -> Text.literal("This command can only be executed by a player."), false);
+            source.sendFeedback(() -> Component.literal("This command can only be executed by a player."), false);
         }
 
         return 1;
