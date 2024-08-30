@@ -9,7 +9,6 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.world.GameMode;
@@ -79,7 +78,7 @@ public class SecGM implements ModInitializer {
             }
 
             player.changeGameMode(gameMode);
-            player.sendMessage(new LiteralText("Game mode changed to " + gameMode.getName()), false);
+            player.sendMessage(Text.literal("Game mode changed to " + gameMode.getName()), false);
         } else {
             source.sendFeedback(() -> Text.literal("This command can only be executed by a player."), false);
         }
@@ -98,15 +97,15 @@ public class SecGM implements ModInitializer {
             if (player.isInvisible()) {
                 // Unvanish
                 player.setInvisible(false);
-                player.getInventory().armor.forEach(itemStack -> itemStack.setCustomName(new LiteralText(itemStack.getName().getString()))); // Show worn armor
-                player.getInventory().main.forEach(itemStack -> itemStack.setCustomName(new LiteralText(itemStack.getName().getString())));  // Show held items
-                player.sendMessage(new LiteralText("You are no longer vanished.").formatted(Formatting.GREEN), false);
+                player.getInventory().armor.forEach(itemStack -> itemStack.setCustomName(Text.literal(itemStack.getName().getString()))); // Show worn armor
+                player.getInventory().main.forEach(itemStack -> itemStack.setCustomName(Text.literal(itemStack.getName().getString())));  // Show held items
+                player.sendMessage(Text.literal("You are no longer vanished.").formatted(Formatting.GREEN), false);
             } else {
                 // Vanish
                 player.setInvisible(true);
-                player.getInventory().armor.forEach(itemStack -> itemStack.setCustomName(new LiteralText(""))); // Hide worn armor
-                player.getInventory().main.forEach(itemStack -> itemStack.setCustomName(new LiteralText("")));  // Hide held items
-                player.sendMessage(new LiteralText("You are now vanished.").formatted(Formatting.RED), false);
+                player.getInventory().armor.forEach(itemStack -> itemStack.setCustomName(Text.literal(""))); // Hide worn armor
+                player.getInventory().main.forEach(itemStack -> itemStack.setCustomName(Text.literal("")));  // Hide held items
+                player.sendMessage(Text.literal("You are now vanished.").formatted(Formatting.RED), false);
             }
         } else {
             source.sendFeedback(() -> Text.literal("This command can only be executed by a player."), false);
@@ -122,8 +121,8 @@ public class SecGM implements ModInitializer {
         // Check if the command executor is a player
         if (source.getEntity() instanceof ServerPlayerEntity) {
             ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
-            player.setCustomName(new LiteralText(name));
-            player.sendMessage(new LiteralText("Your nickname has been changed to " + name).formatted(Formatting.YELLOW), false);
+            player.setCustomName(Text.literal(name));
+            player.sendMessage(Text.literal("Your nickname has been changed to " + name).formatted(Formatting.YELLOW), false);
         } else {
             source.sendFeedback(() -> Text.literal("This command can only be executed by a player."), false);
         }
