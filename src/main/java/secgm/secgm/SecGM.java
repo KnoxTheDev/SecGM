@@ -5,8 +5,11 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.packet.s2c.play.EntityEquipmentUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -15,14 +18,9 @@ import net.minecraft.world.GameMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
 public class SecGM implements ModInitializer {
     public static final String MOD_ID = "secgm";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-    private static final Map<UUID, Boolean> vanishedPlayers = new HashMap<>();
 
     @Override
     public void onInitialize() {
@@ -59,25 +57,23 @@ public class SecGM implements ModInitializer {
 
             switch (mode) {
                 case 0:
-                    gameMode = GameMode.SURVIVAL;
+                    player.changeGameMode(GameMode.SURVIVAL);
                     break;
                 case 1:
-                    gameMode = GameMode.CREATIVE;
+                    player.changeGameMode(GameMode.CREATIVE);
                     break;
                 case 2:
-                    gameMode = GameMode.ADVENTURE;
+                    player.changeGameMode(GameMode.ADVENTURE);
                     break;
                 case 3:
-                    gameMode = GameMode.SPECTATOR;
+                    player.changeGameMode(GameMode.SPECTATOR);
                     break;
                 default:
                     source.sendFeedback(() -> Text.of("Invalid game mode! Use 0 for Survival, 1 for Creative, 2 for Adventure, or 3 for Spectator."), false);
                     return 1;
             }
 
-            // Use changeGameMode() instead of setGameMode() if setGameMode() is unavailable
-            player.changeGameMode(gameMode);
-            player.sendMessage(Text.of("Game mode changed to " + gameMode.getName()), false);
+            player.sendMessage(Text.of("Game mode changed to " + player.interactionManager.getGameMode().getName()), false);
         } else {
             source.sendFeedback(() -> Text.of("This command can only be executed by a player."), false);
         }
@@ -92,28 +88,32 @@ public class SecGM implements ModInitializer {
         if (source.getEntity() instanceof ServerPlayerEntity) {
             ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
 
-            // Toggle vanish state
-            if (vanishedPlayers.containsKey(player.getUuid())) {
-                vanishedPlayers.remove(player.getUuid());
-                player.setInvisible(false);
-                for (EquipmentSlot slot : EquipmentSlot.values()) {
-                    ItemStack stack = player.getEquippedStack(slot);
-                    if (stack != null) {
-                        stack.setHideTooltip(false);
-                    }
-                }
-                player.sendMessage(Text.of("You are now visible."), false);
+            // Toggle vanish mode
+            player.setInvisible(!player.isInvisible());
+
+            // Hide player from tab list
+            PlayerListS2CPacket packet = new PlayerListS2CPacket(PlayerListS2CPacket.Action.REMOVE_PLAYER, player);
+            player.server.getPlayerManager().sendToAll(packet);
+
+            // Fake realistic joining and leaving messages
+            if (player.isInvisible()) {
+                player.server.getPlayerManager().sendToAll(Text.of(player.getName() + " left the game"));
             } else {
-                vanishedPlayers.put(player.getUuid(), true);
-                player.setInvisible(true);
-                for (EquipmentSlot slot : EquipmentSlot.values()) {
-                    ItemStack stack = player.getEquippedStack(slot);
-                    if (stack != null) {
-                        stack.setHideTooltip(true);
-                    }
-                }
-                player.sendMessage(Text.of("You are now invisible."), false);
+                player.server.getPlayerManager().sendToAll(Text.of(player.getName() + " joined the game"));
             }
+
+            // Hide items held in both hands
+            player.server.getPlayerManager().sendToAll(new EntityEquipmentUpdateS2CPacket(player.getId(), EntityEquipmentUpdateS2CPacket.Slot.MAIN_HAND, ItemStack.EMPTY));
+            player.server.getPlayerManager().sendToAll(new EntityEquipmentUpdateS2CPacket(player.getId(), EntityEquipmentUpdateS2CPacket.Slot.OFF_HAND, ItemStack.EMPTY));
+
+            // Hide worn items
+            for (EntityEquipmentUpdateS2CPacket.Slot slot : EntityEquipmentUpdateS2CPacket.Slot.values()) {
+                if (slot.getType() == EntityEquipmentUpdateS2CPacket.Slot.Type.ARMOR) {
+                    player.server.getPlayerManager().sendToAll(new EntityEquipmentUpdateS2CPacket(player.getId(), slot, ItemStack.EMPTY));
+                }
+            }
+
+            player.sendMessage(Text.of("Vanish mode " + (player.isInvisible() ? "enabled" : "disabled")), false);
         } else {
             source.sendFeedback(() -> Text.of("This command can only be executed by a player."), false);
         }
