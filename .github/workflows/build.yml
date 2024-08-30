@@ -44,7 +44,9 @@ jobs:
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           git checkout main
+          git stash # Save unstaged changes
           git pull --rebase origin main
+          git stash pop # Reapply stashed changes
           cp -r build/libs/* .
           git add build/libs
           git commit -m 'Add build artifacts [skip ci]' || echo "No changes to commit"
