@@ -2,6 +2,7 @@ package secgm.secgm;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -26,6 +27,8 @@ public class SecGM implements ModInitializer {
     private void registerCommands() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             registersecgmCommand(dispatcher);
+            registervanishCommand(dispatcher);
+            registernickCommand(dispatcher);
         });
     }
 
@@ -33,6 +36,17 @@ public class SecGM implements ModInitializer {
         dispatcher.register(CommandManager.literal("secgm")
                 .then(CommandManager.argument("mode", IntegerArgumentType.integer(0, 3))
                         .executes(this::setGameMode)));
+    }
+
+    private void registervanishCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
+        dispatcher.register(CommandManager.literal("vanish")
+                .executes(this::vanish));
+    }
+
+    private void registernickCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
+        dispatcher.register(CommandManager.literal("nick")
+                .then(CommandManager.argument("name", StringArgumentType.string())
+                        .executes(this::nick)));
     }
 
     private int setGameMode(CommandContext<ServerCommandSource> context) {
@@ -65,6 +79,55 @@ public class SecGM implements ModInitializer {
             // Use changeGameMode() instead of setGameMode() if setGameMode() is unavailable
             player.changeGameMode(gameMode);
             player.sendMessage(Text.of("Game mode changed to " + gameMode.getName()), false);
+        } else {
+            source.sendFeedback(() -> Text.of("This command can only be executed by a player."), false);
+        }
+
+        return 1;
+    }
+
+    private int vanish(CommandContext<ServerCommandSource> context) {
+        ServerCommandSource source = context.getSource();
+
+        // Check if the command executor is a player
+        if (source.getEntity() instanceof ServerPlayerEntity) {
+            ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
+
+            // Toggle vanish mode
+            if (player.isInvisible()) {
+                // Unvanish
+                player.setInvisible(false);
+                source.getServer().getPlayerManager().broadcastChatMessage(Text.of(player.getName().getString() + " joined the game"), false);
+                player.sendMessage(Text.of("You are no longer vanished."), false);
+            } else {
+                // Vanish
+                player.setInvisible(true);
+                source.getServer().getPlayerManager().broadcastChatMessage(Text.of(player.getName().getString() + " left the game"), false);
+                player.sendMessage(Text.of("You are now vanished."), false);
+            }
+        } else {
+            source.sendFeedback(() -> Text.of("This command can only be executed by a player."), false);
+        }
+
+        return 1;
+    }
+
+    private int nick(CommandContext<ServerCommandSource> context) {
+        String name = StringArgumentType.getString(context, "name");
+        ServerCommandSource source = context.getSource();
+
+        // Check if the command executor is a player
+        if (source.getEntity() instanceof ServerPlayerEntity) {
+            ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
+
+            // Check if the name contains only valid characters
+            if (name.matches("^[a-zA-Z0-9_]+$")) {
+                player.setCustomName(Text.of(name));
+                player.sendMessage(Text.of("Your nickname has been changed to " + name), false);
+                source.sendFeedback(() -> Text.of("Successfully changed nickname to " + name), false);
+            } else {
+                source.sendFeedback(() -> Text.of("Invalid nickname! Use only letters, numbers, and underscores."), false);
+            }
         } else {
             source.sendFeedback(() -> Text.of("This command can only be executed by a player."), false);
         }

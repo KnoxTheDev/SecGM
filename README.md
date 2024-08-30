@@ -17,6 +17,7 @@ SecGM is a Minecraft Fabric mod that adds a private `/secgm` command, allowing p
 - **1.18.x**
 - **1.19.x**
 - **1.20.x**
+- **1.21.x**
 
 ## Requirements
 
