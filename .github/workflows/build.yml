@@ -1,13 +1,17 @@
 name: build
+
 on:
-  [pull_request, push]
+  pull_request:
+  push:
+    branches:
+      - main
 
 jobs:
   build:
     strategy:
       matrix:
-        java: [21]  # Current Java LTS
-
+        # Use these Java versions
+        java: [21] # Current Java LTS
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout repository
@@ -28,44 +32,21 @@ jobs:
       - name: Build
         run: ./gradlew build
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+      - name: Capture build artifacts
+        if: ${{ matrix.java == '21' }} # Only upload artifacts built from latest java
+        uses: actions/upload-artifact@v4
         with:
-          name: build-artifacts
+          name: Artifacts
           path: build/libs/
 
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: build-artifacts
-          path: ./build-artifacts
-
-      - name: Push build artifacts to main branch
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && github.event.pull_request == null
-        env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-          GITHUB_REPO: ${{ github.repository }}
-          GITHUB_SHA: ${{ github.sha }}
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.MY_GITHUB_TOKEN }}
-          script: |
-            const fs = require('fs');
-            const path = require('path');
-            const artifactsDir = './build-artifacts';
-            const files = fs.readdirSync(artifactsDir);
-            files.forEach(file => {
-              const filePath = path.join(artifactsDir, file);
-              const fileContent = fs.readFileSync(filePath, { encoding: 'utf8' });
-              github.repos.createCommit({
-                owner: github.repository_owner,
-                repo: github.repository,
-                message: `Automated build: ${file}`,
-                files: [
-                  {
-                    path: `/${file}`,
-                    content: fileContent
-                  }
-                ]
-              });
-            });
+      - name: Commit and push build artifacts
+        if: ${{ matrix.java == '21' }} # Only push artifacts built from latest java
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git checkout main
+          git pull origin main
+          cp -r build/libs/* .
+          git add build/libs
+          git commit -m 'Add build artifacts'
+          git push origin main
