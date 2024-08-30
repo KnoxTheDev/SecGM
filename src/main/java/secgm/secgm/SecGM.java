@@ -10,6 +10,7 @@ import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.world.GameMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,24 +27,24 @@ public class SecGM implements ModInitializer {
 
     private void registerCommands() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            registersecgmCommand(dispatcher);
-            registervanishCommand(dispatcher);
-            registernickCommand(dispatcher);
+            registerSecgmCommand(dispatcher);
+            registerVanishCommand(dispatcher);
+            registerNickCommand(dispatcher);
         });
     }
 
-    private void registersecgmCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
+    private void registerSecgmCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
         dispatcher.register(CommandManager.literal("secgm")
                 .then(CommandManager.argument("mode", IntegerArgumentType.integer(0, 3))
                         .executes(this::setGameMode)));
     }
 
-    private void registervanishCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
+    private void registerVanishCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
         dispatcher.register(CommandManager.literal("vanish")
                 .executes(this::vanish));
     }
 
-    private void registernickCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
+    private void registerNickCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
         dispatcher.register(CommandManager.literal("nick")
                 .then(CommandManager.argument("name", StringArgumentType.string())
                         .executes(this::nick)));
@@ -96,21 +97,21 @@ public class SecGM implements ModInitializer {
             if (player.isInvisible()) {
                 // Unvanish
                 player.setInvisible(false);
-                player.getInventory().armor.forEach(itemStack -> itemStack.setCustomNameVisible(true)); // Show worn armor
-                player.getInventory().main.forEach(itemStack -> itemStack.setCustomNameVisible(true));  // Show held items
+                player.getInventory().armor.forEach(itemStack -> itemStack.setCustomName(Text.of(itemStack.getName().getString()))); // Show worn armor
+                player.getInventory().main.forEach(itemStack -> itemStack.setCustomName(Text.of(itemStack.getName().getString())));  // Show held items
 
                 // Notify all players
                 source.getServer().getPlayerManager().broadcast(Text.of(player.getName().getString() + " joined the game"), false);
-                player.sendMessage(Text.of("You are no longer vanished."), false);
+                player.sendMessage(Text.of("You are no longer vanished.").formatted(Formatting.GREEN), false);
             } else {
                 // Vanish
                 player.setInvisible(true);
-                player.getInventory().armor.forEach(itemStack -> itemStack.setCustomNameVisible(false)); // Hide worn armor
-                player.getInventory().main.forEach(itemStack -> itemStack.setCustomNameVisible(false));  // Hide held items
+                player.getInventory().armor.forEach(itemStack -> itemStack.setCustomName(Text.of(""))); // Hide worn armor
+                player.getInventory().main.forEach(itemStack -> itemStack.setCustomName(Text.of("")));  // Hide held items
 
                 // Notify all players
                 source.getServer().getPlayerManager().broadcast(Text.of(player.getName().getString() + " left the game"), false);
-                player.sendMessage(Text.of("You are now vanished."), false);
+                player.sendMessage(Text.of("You are now vanished.").formatted(Formatting.RED), false);
             }
         } else {
             source.sendFeedback(() -> Text.of("This command can only be executed by a player."), false);
