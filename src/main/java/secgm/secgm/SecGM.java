@@ -6,12 +6,14 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.network.message.MessageType;
+import net.minecraft.network.message.SignedMessage;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.world.GameMode;
-import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.world.entity.player.PlayerInventory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +56,7 @@ public class SecGM implements ModInitializer {
         int mode = IntegerArgumentType.getInteger(context, "mode");
         ServerCommandSource source = context.getSource();
 
+        // Check if the command executor is a player
         if (source.getEntity() instanceof ServerPlayerEntity) {
             ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
             GameMode gameMode;
@@ -76,7 +79,7 @@ public class SecGM implements ModInitializer {
                     return 1;
             }
 
-            player.changeGameMode(gameMode);
+            player.setGameMode(gameMode);
             player.sendMessage(Text.of("Game mode changed to " + gameMode.getName()), false);
         } else {
             source.sendFeedback(() -> Text.of("This command can only be executed by a player."), false);
@@ -88,23 +91,26 @@ public class SecGM implements ModInitializer {
     private int vanish(CommandContext<ServerCommandSource> context) {
         ServerCommandSource source = context.getSource();
 
+        // Check if the command executor is a player
         if (source.getEntity() instanceof ServerPlayerEntity) {
             ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
 
-            if (player.isInvisible()) {
-                // Unvanish
-                player.setInvisible(false);
-                player.setInvulnerable(false);
-                showArmorAndItems(player);
-                source.getServer().getPlayerManager().broadcast(Text.of(player.getName().getString() + " joined the game"), false);
-                player.sendMessage(Text.of("You are no longer vanished."), false);
-            } else {
-                // Vanish
-                player.setInvisible(true);
-                player.setInvulnerable(true);
-                hideArmorAndItems(player);
-                source.getServer().getPlayerManager().broadcast(Text.of(player.getName().getString() + " left the game"), false);
+            // Toggle vanish mode
+            boolean isInvisible = !player.isInvisible();
+            player.setInvisible(isInvisible);
+
+            if (isInvisible) {
                 player.sendMessage(Text.of("You are now vanished."), false);
+                // Hide player's armor and items
+                PlayerInventory inventory = player.getInventory();
+                inventory.armorInventory.forEach(stack -> stack.setCount(stack.getCount()));
+                inventory.mainInventory.forEach(stack -> stack.setCount(stack.getCount()));
+            } else {
+                player.sendMessage(Text.of("You are no longer vanished."), false);
+                // Show player's armor and items again
+                PlayerInventory inventory = player.getInventory();
+                inventory.armorInventory.forEach(stack -> stack.setCount(stack.getCount()));
+                inventory.mainInventory.forEach(stack -> stack.setCount(stack.getCount()));
             }
         } else {
             source.sendFeedback(() -> Text.of("This command can only be executed by a player."), false);
@@ -113,40 +119,22 @@ public class SecGM implements ModInitializer {
         return 1;
     }
 
-    private void hideArmorAndItems(ServerPlayerEntity player) {
-        PlayerInventory inventory = player.getInventory();
-        for (int i = 0; i < inventory.armor.size(); i++) {
-            inventory.armor.get(i).setCount(0);
-        }
-        for (int i = 0; i < inventory.main.size(); i++) {
-            inventory.main.get(i).setCount(0);
-        }
-        inventory.offHand.forEach(stack -> stack.setCount(0));
-    }
-
-    private void showArmorAndItems(ServerPlayerEntity player) {
-        PlayerInventory inventory = player.getInventory();
-        // Example: Restore one item (adjust as necessary)
-        for (int i = 0; i < inventory.armor.size(); i++) {
-            inventory.armor.get(i).setCount(1); // Restore 1 item
-        }
-        for (int i = 0; i < inventory.main.size(); i++) {
-            inventory.main.get(i).setCount(1); // Restore 1 item
-        }
-        inventory.offHand.forEach(stack -> stack.setCount(1)); // Restore 1 item
-    }
-
     private int nick(CommandContext<ServerCommandSource> context) {
         String name = StringArgumentType.getString(context, "name");
         ServerCommandSource source = context.getSource();
 
+        // Check if the command executor is a player
         if (source.getEntity() instanceof ServerPlayerEntity) {
             ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
 
+            // Check if the name contains only valid characters
             if (name.matches("^[a-zA-Z0-9_]+$")) {
                 player.setCustomName(Text.of(name));
+                player.setCustomNameVisible(true);
                 player.sendMessage(Text.of("Your nickname has been changed to " + name), false);
                 source.sendFeedback(() -> Text.of("Successfully changed nickname to " + name), false);
+                // Update display name in chat as well
+                source.getServer().getPlayerManager().broadcastChatMessage(new SignedMessage(Text.of(player.getName().getString() + " has changed their nickname to " + name)), MessageType.SYSTEM);
             } else {
                 source.sendFeedback(() -> Text.of("Invalid nickname! Use only letters, numbers, and underscores."), false);
             }
