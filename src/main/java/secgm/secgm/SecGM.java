@@ -1,8 +1,8 @@
-package secgm.secgm;
+package secgm;
 
 import com.mojang.authlib.GameProfile;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.client.command.v1.ClientCommandRegistry;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistry;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.client.MinecraftClient;
