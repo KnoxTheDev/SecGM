@@ -1,6 +1,7 @@
 package secgm.secgm;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -97,7 +98,7 @@ public class SecGM implements ModInitializer {
                 // Fake join message
                 sendFakeJoinMessage(player);
 
-                // Make player's items and armor visible
+                // Make player's items visible
                 updateItemVisibility(player.getInventory().main, true);
                 updateItemVisibility(player.getInventory().armor, true);
 
@@ -114,7 +115,7 @@ public class SecGM implements ModInitializer {
                 // Fake leave message
                 sendFakeLeaveMessage(player);
 
-                // Make player's items and armor invisible
+                // Make player's items invisible
                 updateItemVisibility(player.getInventory().main, false);
                 updateItemVisibility(player.getInventory().armor, false);
 
@@ -131,13 +132,13 @@ public class SecGM implements ModInitializer {
     }
 
     private void sendFakeLeaveMessage(ServerPlayerEntity player) {
-        Text leaveMessage = Text.literal(player.getEntityName() + " left the game")
+        Text leaveMessage = Text.literal(player.getName().getString() + " left the game")
                 .formatted(Formatting.YELLOW);
         player.getServer().getPlayerManager().broadcast(leaveMessage, false);
     }
 
     private void sendFakeJoinMessage(ServerPlayerEntity player) {
-        Text joinMessage = Text.literal(player.getEntityName() + " joined the game")
+        Text joinMessage = Text.literal(player.getName().getString() + " joined the game")
                 .formatted(Formatting.YELLOW);
         player.getServer().getPlayerManager().broadcast(joinMessage, false);
     }
@@ -145,13 +146,10 @@ public class SecGM implements ModInitializer {
     private void updateItemVisibility(DefaultedList<ItemStack> items, boolean visible) {
         for (ItemStack stack : items) {
             if (!stack.isEmpty()) {
+                // Simple way to adjust visual cues without actual item property modification
                 if (visible) {
-                    // Remove glowing effect and custom name
-                    stack.setGlowing(false);
-                    stack.setCustomName(null);
+                    stack.setCustomName(null); // Reset custom name when visible
                 } else {
-                    // Set glowing effect and hide with a custom name
-                    stack.setGlowing(true);
                     stack.setCustomName(Text.literal("Hidden Item").formatted(Formatting.DARK_GRAY, Formatting.ITALIC));
                 }
             }
