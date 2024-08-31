@@ -27,13 +27,13 @@ public class SecGM implements ModInitializer {
     public void onInitialize() {
         // Register Client Command
         ClientCommandRegistry.INSTANCE.register(
-            "vanish",
-            cmd -> {
-                MinecraftClient client = MinecraftClient.getInstance();
-                if (client.player != null) {
-                    toggleVanish(client.player);
+                "vanish",
+                cmd -> {
+                    MinecraftClient client = MinecraftClient.getInstance();
+                    if (client.player != null) {
+                        toggleVanish(client.player);
+                    }
                 }
-            }
         );
 
         // Register Packet Handlers (Client and Server)
