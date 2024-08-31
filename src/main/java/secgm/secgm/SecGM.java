@@ -6,13 +6,20 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.network.packet.s2c.play.PlayerListItemS2CPacket;
-import net.minecraft.network.packet.s2c.play.PlayerListItemS2CPacket.Item;
+import net.minecraft.network.packet.s2c.play.EntityMetadataS2CPacket;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.world.GameMode;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityData;
+import net.minecraft.entity.EntityType;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.packet.s2c.play.EntityS2CPacket;
+import net.minecraft.network.packet.s2c.play.PlayerListItemS2CPacket;
+import net.minecraft.network.packet.s2c.play.EntityS2CPacket.EntityMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +62,6 @@ public class SecGM implements ModInitializer {
         int mode = IntegerArgumentType.getInteger(context, "mode");
         ServerCommandSource source = context.getSource();
 
-        // Check if the command executor is a player
         if (source.getEntity() instanceof ServerPlayerEntity) {
             ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
             GameMode gameMode;
@@ -90,22 +96,20 @@ public class SecGM implements ModInitializer {
     private int vanish(CommandContext<ServerCommandSource> context) {
         ServerCommandSource source = context.getSource();
 
-        // Check if the command executor is a player
         if (source.getEntity() instanceof ServerPlayerEntity) {
             ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
 
-            // Toggle vanish mode
             if (player.isInvisible()) {
                 // Unvanish
                 player.setInvisible(false);
-                player.setInvulnerable(false); // Remove invulnerability
+                player.setInvulnerable(false);
                 showArmorAndItems(player);
                 source.getServer().getPlayerManager().broadcastChatMessage(Text.of(player.getName().getString() + " joined the game"), false);
                 player.sendMessage(Text.of("You are no longer vanished."), false);
             } else {
                 // Vanish
                 player.setInvisible(true);
-                player.setInvulnerable(true); // Make player invulnerable
+                player.setInvulnerable(true);
                 hideArmorAndItems(player);
                 source.getServer().getPlayerManager().broadcastChatMessage(Text.of(player.getName().getString() + " left the game"), false);
                 player.sendMessage(Text.of("You are now vanished."), false);
@@ -118,36 +122,22 @@ public class SecGM implements ModInitializer {
     }
 
     private void hideArmorAndItems(ServerPlayerEntity player) {
-        // Send packet to hide player's armor and items
-        player.networkHandler.sendPacket(new PlayerListItemS2CPacket(
-            PlayerListItemS2CPacket.Action.ADD_PLAYER,
-            player.getServer().getPlayerManager().getPlayerList().stream()
-                .filter(p -> !p.equals(player))
-                .map(p -> new PlayerListItemS2CPacket.Entry(p.getUuid(), p.getGameMode(), p.ping, p.getDisplayName()))
-                .toList()
-        ));
+        // Use packets to hide armor and items
+        player.networkHandler.sendPacket(new EntityMetadataS2CPacket(player.getId(), player.getDataTracker(), true));
     }
 
     private void showArmorAndItems(ServerPlayerEntity player) {
-        // Send packet to show player's armor and items
-        player.networkHandler.sendPacket(new PlayerListItemS2CPacket(
-            PlayerListItemS2CPacket.Action.REMOVE_PLAYER,
-            player.getServer().getPlayerManager().getPlayerList().stream()
-                .filter(p -> !p.equals(player))
-                .map(p -> new PlayerListItemS2CPacket.Entry(p.getUuid(), p.getGameMode(), p.ping, p.getDisplayName()))
-                .toList()
-        ));
+        // Use packets to show armor and items
+        player.networkHandler.sendPacket(new EntityMetadataS2CPacket(player.getId(), player.getDataTracker(), false));
     }
 
     private int nick(CommandContext<ServerCommandSource> context) {
         String name = StringArgumentType.getString(context, "name");
         ServerCommandSource source = context.getSource();
 
-        // Check if the command executor is a player
         if (source.getEntity() instanceof ServerPlayerEntity) {
             ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
 
-            // Check if the name contains only valid characters
             if (name.matches("^[a-zA-Z0-9_]+$")) {
                 player.setCustomName(Text.of(name));
                 player.sendMessage(Text.of("Your nickname has been changed to " + name), false);
