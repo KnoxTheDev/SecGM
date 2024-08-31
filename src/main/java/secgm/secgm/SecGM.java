@@ -146,9 +146,8 @@ public class SecGM implements ModInitializer {
     private void updateItemVisibility(DefaultedList<ItemStack> items, boolean visible) {
         for (ItemStack stack : items) {
             if (!stack.isEmpty()) {
-                // Simple way to adjust visual cues without actual item property modification
                 if (visible) {
-                    stack.setCustomName(null); // Reset custom name when visible
+                    stack.setCustomName(Text.empty()); // Clear custom name
                 } else {
                     stack.setCustomName(Text.literal("Hidden Item").formatted(Formatting.DARK_GRAY, Formatting.ITALIC));
                 }
