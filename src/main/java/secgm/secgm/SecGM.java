@@ -3,6 +3,7 @@ package secgm.secgm;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.CommandContext;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.server.command.CommandManager;
@@ -10,7 +11,8 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.world.GameMode;
-import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.inventory.Inventory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,27 +28,17 @@ public class SecGM implements ModInitializer {
 
     private void registerCommands() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            registerSecgmCommand(dispatcher);
-            registerVanishCommand(dispatcher);
-            registerNickCommand(dispatcher);
-        });
-    }
-
-    private void registerSecgmCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
-        dispatcher.register(CommandManager.literal("secgm")
+            dispatcher.register(CommandManager.literal("secgm")
                 .then(CommandManager.argument("mode", IntegerArgumentType.integer(0, 3))
-                        .executes(this::setGameMode)));
-    }
+                    .executes(this::setGameMode)));
 
-    private void registerVanishCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
-        dispatcher.register(CommandManager.literal("vanish")
+            dispatcher.register(CommandManager.literal("vanish")
                 .executes(this::vanish));
-    }
 
-    private void registerNickCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
-        dispatcher.register(CommandManager.literal("nick")
+            dispatcher.register(CommandManager.literal("nick")
                 .then(CommandManager.argument("name", StringArgumentType.string())
-                        .executes(this::nick)));
+                    .executes(this::nick)));
+        });
     }
 
     private int setGameMode(CommandContext<ServerCommandSource> context) {
@@ -95,14 +87,18 @@ public class SecGM implements ModInitializer {
 
             if (isInvisible) {
                 player.sendMessage(Text.of("You are now vanished."), false);
-                PlayerInventory inventory = player.getInventory();
-                inventory.armor.forEach(stack -> stack.setCount(stack.getCount()));
-                inventory.main.forEach(stack -> stack.setCount(stack.getCount()));
+                Inventory inventory = player.getInventory();
+                for (int i = 0; i < inventory.size(); i++) {
+                    ItemStack stack = inventory.getStack(i);
+                    stack.setCount(stack.getCount()); // Keep items but make them invisible
+                }
             } else {
                 player.sendMessage(Text.of("You are no longer vanished."), false);
-                PlayerInventory inventory = player.getInventory();
-                inventory.armor.forEach(stack -> stack.setCount(stack.getCount()));
-                inventory.main.forEach(stack -> stack.setCount(stack.getCount()));
+                Inventory inventory = player.getInventory();
+                for (int i = 0; i < inventory.size(); i++) {
+                    ItemStack stack = inventory.getStack(i);
+                    stack.setCount(stack.getCount()); // Ensure items are visible
+                }
             }
         } else {
             source.sendFeedback(Text.of("This command can only be executed by a player."), false);
@@ -123,7 +119,7 @@ public class SecGM implements ModInitializer {
                 player.setCustomNameVisible(true);
                 player.sendMessage(Text.of("Your nickname has been changed to " + name), false);
                 source.sendFeedback(Text.of("Successfully changed nickname to " + name), false);
-                source.getServer().getPlayerManager().broadcastChatMessage(Text.of(player.getName().getString() + " has changed their nickname to " + name), MessageType.SYSTEM);
+                source.getServer().getPlayerManager().broadcastChatMessage(Text.of(player.getName().getString() + " has changed their nickname to " + name), false);
             } else {
                 source.sendFeedback(Text.of("Invalid nickname! Use only letters, numbers, and underscores."), false);
             }
