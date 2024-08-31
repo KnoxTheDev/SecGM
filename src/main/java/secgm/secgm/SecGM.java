@@ -1,4 +1,4 @@
-package secgm;
+package secgm.secgm;
 
 import com.mojang.authlib.GameProfile;
 import net.fabricmc.api.ModInitializer;
