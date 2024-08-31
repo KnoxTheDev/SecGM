@@ -12,10 +12,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.world.GameMode;
 import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket;
-import net.minecraft.network.packet.s2c.play.EntityS2CPacket;
-import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,14 +96,14 @@ public class SecGM implements ModInitializer {
                 player.setInvisible(false);
                 player.setInvulnerable(false);
                 showArmorAndItems(player);
-                source.getServer().getPlayerManager().broadcastChatMessage(Text.of(player.getName().getString() + " joined the game"), false);
+                source.getServer().getPlayerManager().broadcast(Text.of(player.getName().getString() + " joined the game"), false);
                 player.sendMessage(Text.of("You are no longer vanished."), false);
             } else {
                 // Vanish
                 player.setInvisible(true);
                 player.setInvulnerable(true);
                 hideArmorAndItems(player);
-                source.getServer().getPlayerManager().broadcastChatMessage(Text.of(player.getName().getString() + " left the game"), false);
+                source.getServer().getPlayerManager().broadcast(Text.of(player.getName().getString() + " left the game"), false);
                 player.sendMessage(Text.of("You are now vanished."), false);
             }
         } else {
@@ -118,21 +114,26 @@ public class SecGM implements ModInitializer {
     }
 
     private void hideArmorAndItems(ServerPlayerEntity player) {
-        // Hide armor and items
         PlayerInventory inventory = player.getInventory();
-        inventory.armorInventory.forEach(stack -> stack.setCount(0));
-        inventory.mainInventory.forEach(stack -> stack.setCount(0));
+        for (int i = 0; i < inventory.armor.size(); i++) {
+            inventory.armor.get(i).setCount(0);
+        }
+        for (int i = 0; i < inventory.main.size(); i++) {
+            inventory.main.get(i).setCount(0);
+        }
         inventory.offHand.forEach(stack -> stack.setCount(0));
-        player.updateTrackedPosition();
     }
 
     private void showArmorAndItems(ServerPlayerEntity player) {
-        // Show armor and items
         PlayerInventory inventory = player.getInventory();
-        inventory.armorInventory.forEach(stack -> stack.setCount(1)); // Example count; adjust as necessary
-        inventory.mainInventory.forEach(stack -> stack.setCount(1)); // Example count; adjust as necessary
-        inventory.offHand.forEach(stack -> stack.setCount(1)); // Example count; adjust as necessary
-        player.updateTrackedPosition();
+        // Example: Restore one item (adjust as necessary)
+        for (int i = 0; i < inventory.armor.size(); i++) {
+            inventory.armor.get(i).setCount(1); // Restore 1 item
+        }
+        for (int i = 0; i < inventory.main.size(); i++) {
+            inventory.main.get(i).setCount(1); // Restore 1 item
+        }
+        inventory.offHand.forEach(stack -> stack.setCount(1)); // Restore 1 item
     }
 
     private int nick(CommandContext<ServerCommandSource> context) {
