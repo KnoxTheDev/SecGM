@@ -14,6 +14,8 @@ import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.EquipmentSlot;
+import net.minecraft.util.EquipmentSlot.Type;
 import net.minecraft.world.GameMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,18 +99,18 @@ public class SecGM implements ModInitializer {
 
             // Fake realistic joining and leaving messages
             if (player.isInvisible()) {
-                player.server.getPlayerManager().sendToAll(Text.of(player.getName() + " left the game"));
+                player.server.getPlayerManager().broadcastChatMessage(Text.of(player.getName() + " left the game"), net.minecraft.network.MessageType.SYSTEM, player.getUUID());
             } else {
-                player.server.getPlayerManager().sendToAll(Text.of(player.getName() + " joined the game"));
+                player.server.getPlayerManager().broadcastChatMessage(Text.of(player.getName() + " joined the game"), net.minecraft.network.MessageType.SYSTEM, player.getUUID());
             }
 
             // Hide items held in both hands
-            player.server.getPlayerManager().sendToAll(new EntityEquipmentUpdateS2CPacket(player.getId(), EntityEquipmentUpdateS2CPacket.Slot.MAIN_HAND, ItemStack.EMPTY));
-            player.server.getPlayerManager().sendToAll(new EntityEquipmentUpdateS2CPacket(player.getId(), EntityEquipmentUpdateS2CPacket.Slot.OFF_HAND, ItemStack.EMPTY));
+            player.server.getPlayerManager().sendToAll(new EntityEquipmentUpdateS2CPacket(player.getId(), EquipmentSlot.MAINHAND, ItemStack.EMPTY));
+            player.server.getPlayerManager().sendToAll(new EntityEquipmentUpdateS2CPacket(player.getId(), EquipmentSlot.OFFHAND, ItemStack.EMPTY));
 
             // Hide worn items
-            for (EntityEquipmentUpdateS2CPacket.Slot slot : EntityEquipmentUpdateS2CPacket.Slot.values()) {
-                if (slot.getType() == EntityEquipmentUpdateS2CPacket.Slot.Type.ARMOR) {
+            for (EquipmentSlot slot : EquipmentSlot.values()) {
+                if (slot.getType() == EquipmentSlot.Type.ARMOR) {
                     player.server.getPlayerManager().sendToAll(new EntityEquipmentUpdateS2CPacket(player.getId(), slot, ItemStack.EMPTY));
                 }
             }
