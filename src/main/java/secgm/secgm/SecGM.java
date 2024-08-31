@@ -1,8 +1,8 @@
-package secgm;
+package secgm.secgm;
 
 import com.mojang.authlib.GameProfile;
-import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistry;
+import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.client.MinecraftClient;
@@ -16,7 +16,7 @@ import net.minecraft.util.Formatting;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SecGM implements ModInitializer {
+public class SecGM implements ClientModInitializer {
 
     public static final String MOD_ID = "secgm";
     public static final String VANISH_PACKET_ID = MOD_ID + ":vanish_toggle";
@@ -24,16 +24,18 @@ public class SecGM implements ModInitializer {
     private static final Map<GameProfile, Boolean> vanishedPlayers = new HashMap<>();
 
     @Override
-    public void onInitialize() {
-        // Register Client Command
-        ClientCommandRegistry.INSTANCE.register(
-                "vanish",
-                cmd -> {
-                    MinecraftClient client = MinecraftClient.getInstance();
-                    if (client.player != null) {
-                        toggleVanish(client.player);
-                    }
-                }
+    public void onInitializeClient() {
+        // Register Client Command using ClientCommandManager
+        ClientCommandManager.DISPATCHER.register(
+                ClientCommandManager.builder("vanish")
+                        .executes(context -> {
+                            MinecraftClient client = MinecraftClient.getInstance();
+                            if (client.player != null) {
+                                toggleVanish(client.player);
+                            }
+                            return 1; // Command execution successful
+                        })
+                        .build()
         );
 
         // Register Packet Handlers (Client and Server)
