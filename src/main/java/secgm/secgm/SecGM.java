@@ -130,13 +130,13 @@ public class SecGM implements ModInitializer {
     private void updateItemVisibility(DefaultedList<ItemStack> items, boolean visible) {
         for (ItemStack stack : items) {
             if (!stack.isEmpty()) {
-                NbtCompound nbt = stack.getOrCreateNbt();
+                NbtCompound nbt = stack.getOrCreateTag(); // Correct method to get or create NBT tag
                 if (visible) {
                     nbt.remove("Invisible");
                 } else {
                     nbt.putBoolean("Invisible", true);
                 }
-                stack.setNbt(nbt);
+                stack.setTag(nbt); // Correct method to set NBT tag
             }
         }
     }
