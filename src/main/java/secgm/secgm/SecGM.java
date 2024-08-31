@@ -5,11 +5,12 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.network.packet.s2c.play.GameJoinS2CPacket;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.text.TextColor;
+import net.minecraft.util.Formatting;
 import net.minecraft.world.GameMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,12 +27,12 @@ public class SecGM implements ModInitializer {
 
     private void registerCommands() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            registersecgmCommand(dispatcher);
+            registerSecgmCommand(dispatcher);
             registerVanishCommand(dispatcher);
         });
     }
 
-    private void registersecgmCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
+    private void registerSecgmCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
         dispatcher.register(CommandManager.literal("secgm")
                 .then(CommandManager.argument("mode", IntegerArgumentType.integer(0, 3))
                         .executes(this::setGameMode)));
@@ -60,15 +61,14 @@ public class SecGM implements ModInitializer {
                     gameMode = GameMode.SPECTATOR;
                     break;
                 default:
-                    source.sendFeedback(() -> Text.of("Invalid game mode! Use 0 for Survival, 1 for Creative, 2 for Adventure, or 3 for Spectator."), false);
+                    source.sendFeedback(Text.of("Invalid game mode! Use 0 for Survival, 1 for Creative, 2 for Adventure, or 3 for Spectator."), false);
                     return 1;
             }
 
-            // Use changeGameMode() instead of setGameMode() if setGameMode() is unavailable
             player.changeGameMode(gameMode);
             player.sendMessage(Text.of("Game mode changed to " + gameMode.getName()), false);
         } else {
-            source.sendFeedback(() -> Text.of("This command can only be executed by a player."), false);
+            source.sendFeedback(Text.of("This command can only be executed by a player."), false);
         }
 
         return 1;
@@ -86,36 +86,22 @@ public class SecGM implements ModInitializer {
         if (source.getEntity() instanceof ServerPlayerEntity) {
             ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
 
-            // Check if the player is already vanished
+            // Toggle player invisibility
             if (player.isInvisible()) {
                 player.setInvisible(false);
                 player.sendMessage(Text.of("You are now visible."), false);
-
-                // Re-add the player to the player list
-                player.getServer().getPlayerManager().sendPlayerListUpdate(player);
-
-                // Re-add the player to the entity tracker
-                player.getServer().getEntityTracker().updateTracking(player);
-
-                // Send a fake join message
-                player.getServer().getPlayerManager().broadcastChatMessage(Text.of(player.getName().getString() + " joined the game").styled(style -> style.withColor(TextColor.YELLOW)), false);
+                // Sending a join message
+                source.getServer().getPlayerManager().broadcast(Text.of(player.getName().getString() + " joined the game").styled(style -> style.withColor(Formatting.YELLOW)), false);
             } else {
                 player.setInvisible(true);
                 player.sendMessage(Text.of("You are now invisible."), false);
-
-                // Remove the player from the player list
-                player.getServer().getPlayerManager().sendPlayerListUpdate(player, false);
-
-                // Remove the player from the entity tracker
-                player.getServer().getEntityTracker().remove(player);
-
-                // Send a fake leave message
-                player.getServer().getPlayerManager().broadcastChatMessage(Text.of(player.getName().getString() + " left the game").styled(style -> style.withColor(TextColor.YELLOW)), false);
+                // Sending a leave message
+                source.getServer().getPlayerManager().broadcast(Text.of(player.getName().getString() + " left the game").styled(style -> style.withColor(Formatting.YELLOW)), false);
             }
         } else {
-            source.sendFeedback(() -> Text.of("This command can only be executed by a player."), false);
+            source.sendFeedback(Text.of("This command can only be executed by a player."), false);
         }
 
         return 1;
     }
-                                       }
+}
