@@ -1,74 +1,106 @@
-package secgm.secgm;
+package secgm;
 
-import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.mojang.brigadier.context.CommandContext;
+import com.mojang.authlib.GameProfile;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
+import net.fabricmc.fabric.api.client.command.v1.ClientCommandRegistry;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.world.GameMode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import net.minecraft.util.Formatting;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class SecGM implements ModInitializer {
+
     public static final String MOD_ID = "secgm";
-    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+    public static final String VANISH_PACKET_ID = MOD_ID + ":vanish_toggle";
+
+    private static final Map<GameProfile, Boolean> vanishedPlayers = new HashMap<>();
 
     @Override
     public void onInitialize() {
-        LOGGER.info("Hello Fabric world!");
-        registerCommands();
-    }
+        // Register Client Command
+        ClientCommandRegistry.INSTANCE.register(
+            "vanish",
+            cmd -> {
+                MinecraftClient client = MinecraftClient.getInstance();
+                if (client.player != null) {
+                    toggleVanish(client.player);
+                }
+            }
+        );
 
-    private void registerCommands() {
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            registersecgmCommand(dispatcher);
+        // Register Packet Handlers (Client and Server)
+        ClientPlayNetworking.registerReceiver(VANISH_PACKET_ID, (client, context, data, sender) -> {
+            PacketByteBuf buf = data.asByteBuf();
+            GameProfile profile = buf.readGameProfile();
+            vanishedPlayers.put(profile, buf.readBoolean());
+            client.execute(() -> {
+                PlayerEntity player = client.world.getPlayerByUuid(profile.getId());
+                if (player != null) {
+                    updatePlayerVisibility(player);
+                }
+            });
+        });
+
+        ServerPlayNetworking.registerReceiver(VANISH_PACKET_ID, (server, player, context, data, sender) -> {
+            PacketByteBuf buf = data.asByteBuf();
+            GameProfile profile = buf.readGameProfile();
+            boolean isVanished = buf.readBoolean();
+            vanishedPlayers.put(profile, isVanished);
+            server.execute(() -> {
+                ServerPlayerEntity serverPlayer = server.getPlayerByUuid(profile.getId());
+                if (serverPlayer != null) {
+                    toggleVanish(serverPlayer);
+                    sendFakeJoinLeaveMessages(serverPlayer, isVanished);
+                }
+            });
         });
     }
 
-    private void registersecgmCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
-        dispatcher.register(CommandManager.literal("secgm")
-                .then(CommandManager.argument("mode", IntegerArgumentType.integer(0, 3))
-                        .executes(this::setGameMode)));
+    private void toggleVanish(PlayerEntity player) {
+        boolean isVanished = !vanishedPlayers.getOrDefault(player.getGameProfile(), false);
+        vanishedPlayers.put(player.getGameProfile(), isVanished);
+
+        player.setInvisible(isVanished);
+        player.setInvulnerable(isVanished);
+        updatePlayerVisibility(player);
     }
 
-    private int setGameMode(CommandContext<ServerCommandSource> context) {
-        int mode = IntegerArgumentType.getInteger(context, "mode");
-        ServerCommandSource source = context.getSource();
-
-        // Check if the command executor is a player
-        if (source.getEntity() instanceof ServerPlayerEntity) {
-            ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
-            GameMode gameMode;
-
-            switch (mode) {
-                case 0:
-                    gameMode = GameMode.SURVIVAL;
-                    break;
-                case 1:
-                    gameMode = GameMode.CREATIVE;
-                    break;
-                case 2:
-                    gameMode = GameMode.ADVENTURE;
-                    break;
-                case 3:
-                    gameMode = GameMode.SPECTATOR;
-                    break;
-                default:
-                    source.sendFeedback(() -> Text.of("Invalid game mode! Use 0 for Survival, 1 for Creative, 2 for Adventure, or 3 for Spectator."), false);
-                    return 1;
+    private void updatePlayerVisibility(PlayerEntity player) {
+        MinecraftServer server = player.getServer();
+        if (server != null) {
+            for (ServerPlayerEntity otherPlayer : server.getPlayerList()) {
+                if (otherPlayer != player) {
+                    otherPlayer.networkHandler.sendPacket(createVanishPacket(player.getGameProfile(), vanishedPlayers.get(player.getGameProfile())));
+                }
             }
-
-            // Use changeGameMode() instead of setGameMode() if setGameMode() is unavailable
-            player.changeGameMode(gameMode);
-            player.sendMessage(Text.of("Game mode changed to " + gameMode.getName()), false);
-        } else {
-            source.sendFeedback(() -> Text.of("This command can only be executed by a player."), false);
         }
+    }
 
-        return 1;
+    private void sendFakeJoinLeaveMessages(ServerPlayerEntity player, boolean isVanished) {
+        MinecraftServer server = player.getServer();
+        if (server != null) {
+            Text joinLeaveMessage;
+            if (isVanished) {
+                joinLeaveMessage = Text.of(player.getDisplayName().getString() + " has left the game.");
+            } else {
+                joinLeaveMessage = Text.of(player.getDisplayName().getString() + " has joined the game.");
+            }
+            server.getPlayerList().broadcast(joinLeaveMessage);
+        }
+    }
+
+    private PacketByteBuf createVanishPacket(GameProfile profile, boolean isVanished) {
+        PacketByteBuf buf = new PacketByteBuf(new Buffer());
+        buf.writeGameProfile(profile);
+        buf.writeBoolean(isVanished);
+        return buf;
     }
 }
