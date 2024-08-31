@@ -11,23 +11,24 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class SecGM implements ClientModInitializer {
 
     public static final String MOD_ID = "secgm";
-    public static final String VANISH_PACKET_ID = MOD_ID + ":vanish_toggle";
+    public static final Identifier VANISH_PACKET_ID = new Identifier(MOD_ID, "vanish_toggle");
 
-    private static final Map<GameProfile, Boolean> vanishedPlayers = new HashMap<>();
+    private static final Map<UUID, Boolean> vanishedPlayers = new HashMap<>();
 
     @Override
     public void onInitializeClient() {
         // Register Client Command using ClientCommandManager
-        ClientCommandManager.DISPATCHER.register(
-                ClientCommandManager.builder("vanish")
+        ClientCommandManager.INSTANCE.getDispatcher().register(
+                ClientCommandManager.literal("vanish")
                         .executes(context -> {
                             MinecraftClient client = MinecraftClient.getInstance();
                             if (client.player != null) {
@@ -35,30 +36,28 @@ public class SecGM implements ClientModInitializer {
                             }
                             return 1; // Command execution successful
                         })
-                        .build()
         );
 
         // Register Packet Handlers (Client and Server)
-        ClientPlayNetworking.registerReceiver(VANISH_PACKET_ID, (client, context, data, sender) -> {
-            PacketByteBuf buf = new PacketByteBuf(data);
-            GameProfile profile = buf.readGameProfile();
-            vanishedPlayers.put(profile, buf.readBoolean());
+        ClientPlayNetworking.registerGlobalReceiver(VANISH_PACKET_ID, (client, handler, buf, responseSender) -> {
+            UUID profileId = buf.readUuid();
+            boolean isVanished = buf.readBoolean();
             client.execute(() -> {
-                PlayerEntity player = client.world.getPlayerByUuid(profile.getId());
+                PlayerEntity player = client.world.getPlayerByUuid(profileId);
                 if (player != null) {
+                    vanishedPlayers.put(profileId, isVanished);
                     updatePlayerVisibility(player);
                 }
             });
         });
 
-        ServerPlayNetworking.registerReceiver(VANISH_PACKET_ID, (server, player, context, data, sender) -> {
-            PacketByteBuf buf = new PacketByteBuf(data);
-            GameProfile profile = buf.readGameProfile();
+        ServerPlayNetworking.registerGlobalReceiver(VANISH_PACKET_ID, (server, player, handler, buf, responseSender) -> {
+            UUID profileId = buf.readUuid();
             boolean isVanished = buf.readBoolean();
-            vanishedPlayers.put(profile, isVanished);
             server.execute(() -> {
-                ServerPlayerEntity serverPlayer = server.getPlayerByUuid(profile.getId());
+                ServerPlayerEntity serverPlayer = server.getPlayerManager().getPlayer(profileId);
                 if (serverPlayer != null) {
+                    vanishedPlayers.put(profileId, isVanished);
                     toggleVanish(serverPlayer);
                     sendFakeJoinLeaveMessages(serverPlayer, isVanished);
                 }
@@ -67,8 +66,8 @@ public class SecGM implements ClientModInitializer {
     }
 
     private void toggleVanish(PlayerEntity player) {
-        boolean isVanished = !vanishedPlayers.getOrDefault(player.getGameProfile(), false);
-        vanishedPlayers.put(player.getGameProfile(), isVanished);
+        boolean isVanished = !vanishedPlayers.getOrDefault(player.getUuid(), false);
+        vanishedPlayers.put(player.getUuid(), isVanished);
 
         player.setInvisible(isVanished);
         player.setInvulnerable(isVanished);
@@ -78,9 +77,9 @@ public class SecGM implements ClientModInitializer {
     private void updatePlayerVisibility(PlayerEntity player) {
         MinecraftServer server = player.getServer();
         if (server != null) {
-            for (ServerPlayerEntity otherPlayer : server.getPlayerList()) {
+            for (ServerPlayerEntity otherPlayer : server.getPlayerManager().getPlayerList()) {
                 if (otherPlayer != player) {
-                    otherPlayer.networkHandler.sendPacket(createVanishPacket(player.getGameProfile(), vanishedPlayers.get(player.getGameProfile())));
+                    otherPlayer.networkHandler.sendPacket(createVanishPacket(player.getUuid(), vanishedPlayers.get(player.getUuid())));
                 }
             }
         }
@@ -89,19 +88,14 @@ public class SecGM implements ClientModInitializer {
     private void sendFakeJoinLeaveMessages(ServerPlayerEntity player, boolean isVanished) {
         MinecraftServer server = player.getServer();
         if (server != null) {
-            Text joinLeaveMessage;
-            if (isVanished) {
-                joinLeaveMessage = Text.of(player.getDisplayName().getString() + " has left the game.");
-            } else {
-                joinLeaveMessage = Text.of(player.getDisplayName().getString() + " has joined the game.");
-            }
-            server.getPlayerList().broadcast(joinLeaveMessage);
+            Text joinLeaveMessage = Text.of(player.getDisplayName().getString() + (isVanished ? " has left the game." : " has joined the game."));
+            server.getPlayerManager().broadcast(joinLeaveMessage, false);
         }
     }
 
-    private PacketByteBuf createVanishPacket(GameProfile profile, boolean isVanished) {
-        PacketByteBuf buf = new PacketByteBuf(new PacketByteBuf(null)); // Adjust according to actual initialization
-        buf.writeGameProfile(profile);
+    private PacketByteBuf createVanishPacket(UUID profileId, boolean isVanished) {
+        PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+        buf.writeUuid(profileId);
         buf.writeBoolean(isVanished);
         return buf;
     }
