@@ -9,7 +9,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.world.GameMode;
 
-public class SecGM { // Class name should match the filename
+public class SecGM {
 
     public static void registerCommands(CommandDispatcher<ServerCommandManager.CommandSource> dispatcher) {
         dispatcher.register(
