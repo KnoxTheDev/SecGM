@@ -9,11 +9,14 @@ import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.world.GameMode;
+import net.minecraft.world.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,46 +98,26 @@ public class SecGM implements ModInitializer {
                 player.sendMessage(Text.of("You are now visible and vulnerable."), false);
 
                 // Make player's items and armor visible
-                player.getInventory().forEach(stack -> {
-                    if (stack != null) {
-                        stack.setGlowingTag(stack.getOrCreateTag());
-                    }
-                });
-                player.getArmorItems().forEach(stack -> {
-                    if (stack != null) {
-                        stack.setGlowingTag(stack.getOrCreateTag());
-                    }
-                });
+                updateItemVisibility(player.getInventory().main, true);
+                updateItemVisibility(player.getInventory().armor, true);
 
                 // Allow mobs to target the player again
-                player.getWorld().getEntities().forEach(entity -> {
-                    if (entity instanceof MobEntity) {
-                        ((MobEntity) entity).setTarget(player);
-                    }
-                });
+                World world = player.getWorld();
+                world.getEntitiesByClass(MobEntity.class, player.getBoundingBox().expand(100), mob -> true)
+                        .forEach(mob -> mob.setTarget(player));
             } else {
                 player.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, Integer.MAX_VALUE, 0, false, false));
                 player.setInvulnerable(true);
                 player.sendMessage(Text.of("You are now invisible and invulnerable."), false);
 
                 // Make player's items and armor invisible
-                player.getInventory().forEach(stack -> {
-                    if (stack != null) {
-                        stack.setGlowingTag(null);
-                    }
-                });
-                player.getArmorItems().forEach(stack -> {
-                    if (stack != null) {
-                        stack.setGlowingTag(null);
-                    }
-                });
+                updateItemVisibility(player.getInventory().main, false);
+                updateItemVisibility(player.getInventory().armor, false);
 
                 // Prevent mobs from targeting the player
-                player.getWorld().getEntities().forEach(entity -> {
-                    if (entity instanceof MobEntity) {
-                        ((MobEntity) entity).setTarget(null);
-                    }
-                });
+                World world = player.getWorld();
+                world.getEntitiesByClass(MobEntity.class, player.getBoundingBox().expand(100), mob -> true)
+                        .forEach(mob -> mob.setTarget(null));
             }
         } else {
             source.sendFeedback(() -> Text.of("This command can only be executed by a player."), false);
@@ -142,4 +125,19 @@ public class SecGM implements ModInitializer {
 
         return 1;
     }
+
+    // Helper method to update item visibility
+    private void updateItemVisibility(DefaultedList<ItemStack> items, boolean visible) {
+        for (ItemStack stack : items) {
+            if (!stack.isEmpty()) {
+                NbtCompound nbt = stack.getOrCreateNbt();
+                if (visible) {
+                    nbt.remove("Invisible");
+                } else {
+                    nbt.putBoolean("Invisible", true);
+                }
+                stack.setNbt(nbt);
+            }
         }
+    }
+}
