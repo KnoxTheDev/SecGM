@@ -9,7 +9,8 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.world.GameMode;
 
-public class SecgmMod {
+public class SecGM { // Class name should match the filename
+
     public static void registerCommands(CommandDispatcher<ServerCommandManager.CommandSource> dispatcher) {
         dispatcher.register(
                 ServerCommandManager.literal("vanish")
