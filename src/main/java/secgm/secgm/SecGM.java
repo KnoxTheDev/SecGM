@@ -1,132 +1,114 @@
 package secgm.secgm;
 
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.CommandContext;
 import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.world.GameMode;
+import net.minecraft.network.packet.s2c.play.PlayerListItemS2CPacket;
+import net.minecraft.network.packet.s2c.play.EntityMetadataS2CPacket;
+import net.minecraft.network.packet.s2c.play.EntityS2CPacket;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.packet.s2c.play.EntityS2CPacket;
+import net.minecraft.network.packet.s2c.play.PlayerListItemS2CPacket;
 import net.minecraft.item.ItemStack;
 import net.minecraft.inventory.Inventory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SecGM implements ModInitializer {
-    public static final String MOD_ID = "secgm";
-    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+
+    public static final Logger LOGGER = LoggerFactory.getLogger("secgm");
 
     @Override
     public void onInitialize() {
-        LOGGER.info("Hello Fabric world!");
-        registerCommands();
-    }
-
-    private void registerCommands() {
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            dispatcher.register(CommandManager.literal("secgm")
-                .then(CommandManager.argument("mode", IntegerArgumentType.integer(0, 3))
-                    .executes(this::setGameMode)));
-
+        // Register commands
+        CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
+            dispatcher.register(CommandManager.literal("setgmode")
+                .then(CommandManager.argument("mode", StringArgumentType.string())
+                    .executes(this::setGameMode))
+            );
             dispatcher.register(CommandManager.literal("vanish")
-                .executes(this::vanish));
-
+                .executes(this::vanish)
+            );
             dispatcher.register(CommandManager.literal("nick")
                 .then(CommandManager.argument("name", StringArgumentType.string())
-                    .executes(this::nick)));
+                    .executes(this::nick))
+            );
         });
     }
 
     private int setGameMode(CommandContext<ServerCommandSource> context) {
-        int mode = IntegerArgumentType.getInteger(context, "mode");
         ServerCommandSource source = context.getSource();
+        String mode = StringArgumentType.getString(context, "mode");
+        ServerPlayerEntity player = source.getPlayer();
 
-        if (source.getEntity() instanceof ServerPlayerEntity) {
-            ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
-            GameMode gameMode;
-
-            switch (mode) {
-                case 0:
-                    gameMode = GameMode.SURVIVAL;
+        if (player != null) {
+            switch (mode.toLowerCase()) {
+                case "survival":
+                    player.setGameMode(GameMode.SURVIVAL);
                     break;
-                case 1:
-                    gameMode = GameMode.CREATIVE;
+                case "creative":
+                    player.setGameMode(GameMode.CREATIVE);
                     break;
-                case 2:
-                    gameMode = GameMode.ADVENTURE;
+                case "adventure":
+                    player.setGameMode(GameMode.ADVENTURE);
                     break;
-                case 3:
-                    gameMode = GameMode.SPECTATOR;
+                case "spectator":
+                    player.setGameMode(GameMode.SPECTATOR);
                     break;
                 default:
-                    source.sendFeedback(Text.of("Invalid game mode! Use 0 for Survival, 1 for Creative, 2 for Adventure, or 3 for Spectator."), false);
+                    source.sendError(Text.of("Invalid game mode!"));
                     return 1;
             }
-
-            player.setGameMode(gameMode);
-            player.sendMessage(Text.of("Game mode changed to " + gameMode.getName()), false);
-        } else {
-            source.sendFeedback(Text.of("This command can only be executed by a player."), false);
+            source.sendFeedback(Text.of("Game mode set to " + mode), true);
         }
-
         return 1;
     }
 
     private int vanish(CommandContext<ServerCommandSource> context) {
         ServerCommandSource source = context.getSource();
+        ServerPlayerEntity player = source.getPlayer();
 
-        if (source.getEntity() instanceof ServerPlayerEntity) {
-            ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
+        if (player != null) {
+            // Hide player's items and armor from other players
+            hideItemsFromOthers(player);
 
-            boolean isInvisible = !player.isInvisible();
-            player.setInvisible(isInvisible);
-
-            if (isInvisible) {
-                player.sendMessage(Text.of("You are now vanished."), false);
-                Inventory inventory = player.getInventory();
-                for (int i = 0; i < inventory.size(); i++) {
-                    ItemStack stack = inventory.getStack(i);
-                    stack.setCount(stack.getCount()); // Keep items but make them invisible
-                }
-            } else {
-                player.sendMessage(Text.of("You are no longer vanished."), false);
-                Inventory inventory = player.getInventory();
-                for (int i = 0; i < inventory.size(); i++) {
-                    ItemStack stack = inventory.getStack(i);
-                    stack.setCount(stack.getCount()); // Ensure items are visible
-                }
-            }
-        } else {
-            source.sendFeedback(Text.of("This command can only be executed by a player."), false);
+            source.sendFeedback(Text.of("You are now invisible to others."), true);
         }
-
         return 1;
     }
 
     private int nick(CommandContext<ServerCommandSource> context) {
-        String name = StringArgumentType.getString(context, "name");
         ServerCommandSource source = context.getSource();
+        String newName = StringArgumentType.getString(context, "name");
+        ServerPlayerEntity player = source.getPlayer();
 
-        if (source.getEntity() instanceof ServerPlayerEntity) {
-            ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
-
-            if (name.matches("^[a-zA-Z0-9_]+$")) {
-                player.setCustomName(Text.of(name));
-                player.setCustomNameVisible(true);
-                player.sendMessage(Text.of("Your nickname has been changed to " + name), false);
-                source.sendFeedback(Text.of("Successfully changed nickname to " + name), false);
-                source.getServer().getPlayerManager().broadcastChatMessage(Text.of(player.getName().getString() + " has changed their nickname to " + name), false);
-            } else {
-                source.sendFeedback(Text.of("Invalid nickname! Use only letters, numbers, and underscores."), false);
-            }
-        } else {
-            source.sendFeedback(Text.of("This command can only be executed by a player."), false);
+        if (player != null) {
+            // Change the player's display name
+            player.setCustomName(Text.of(newName));
+            source.sendFeedback(Text.of("Nickname changed to " + newName), true);
         }
-
         return 1;
+    }
+
+    private void hideItemsFromOthers(ServerPlayerEntity player) {
+        // Example logic to hide player's items and armor from other players
+        // Update player's metadata to hide items (client-side)
+        for (ServerPlayerEntity otherPlayer : player.getServer().getPlayerManager().getPlayerList()) {
+            if (otherPlayer.equals(player)) continue;
+            
+            // Send an empty packet to hide items
+            PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+            buf.writeVarInt(player.getId());
+            buf.writeByte(0); // Packet type
+            otherPlayer.networkHandler.sendPacket(new PlayerListItemS2CPacket(
+                PlayerListItemS2CPacket.Action.REMOVE_PLAYER, Collections.singletonList(new GameProfile(player.getUuid(), player.getName().getString()))
+            ));
+        }
     }
 }
