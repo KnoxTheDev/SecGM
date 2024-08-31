@@ -1,19 +1,15 @@
 package secgm.secgm;
 
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.network.message.MessageType;
-import net.minecraft.network.message.SignedMessage;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.world.GameMode;
-import net.minecraft.world.entity.player.PlayerInventory;
+import net.minecraft.world.inventory.PlayerInventory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,14 +99,14 @@ public class SecGM implements ModInitializer {
                 player.sendMessage(Text.of("You are now vanished."), false);
                 // Hide player's armor and items
                 PlayerInventory inventory = player.getInventory();
-                inventory.armorInventory.forEach(stack -> stack.setCount(stack.getCount()));
-                inventory.mainInventory.forEach(stack -> stack.setCount(stack.getCount()));
+                inventory.armor.forEach(stack -> stack.setCount(stack.getCount()));
+                inventory.main.forEach(stack -> stack.setCount(stack.getCount()));
             } else {
                 player.sendMessage(Text.of("You are no longer vanished."), false);
                 // Show player's armor and items again
                 PlayerInventory inventory = player.getInventory();
-                inventory.armorInventory.forEach(stack -> stack.setCount(stack.getCount()));
-                inventory.mainInventory.forEach(stack -> stack.setCount(stack.getCount()));
+                inventory.armor.forEach(stack -> stack.setCount(stack.getCount()));
+                inventory.main.forEach(stack -> stack.setCount(stack.getCount()));
             }
         } else {
             source.sendFeedback(() -> Text.of("This command can only be executed by a player."), false);
@@ -134,7 +130,7 @@ public class SecGM implements ModInitializer {
                 player.sendMessage(Text.of("Your nickname has been changed to " + name), false);
                 source.sendFeedback(() -> Text.of("Successfully changed nickname to " + name), false);
                 // Update display name in chat as well
-                source.getServer().getPlayerManager().broadcastChatMessage(new SignedMessage(Text.of(player.getName().getString() + " has changed their nickname to " + name)), MessageType.SYSTEM);
+                source.getServer().getPlayerManager().broadcastChatMessage(Text.of(player.getName().getString() + " has changed their nickname to " + name), MessageType.SYSTEM);
             } else {
                 source.sendFeedback(() -> Text.of("Invalid nickname! Use only letters, numbers, and underscores."), false);
             }
