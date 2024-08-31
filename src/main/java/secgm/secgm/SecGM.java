@@ -1,6 +1,7 @@
 package secgm.secgm;
 
 import com.mojang.authlib.GameProfile;
+import io.netty.buffer.Unpooled;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -66,8 +67,9 @@ public class SecGM implements ClientModInitializer {
     }
 
     private void toggleVanish(PlayerEntity player) {
-        boolean isVanished = !vanishedPlayers.getOrDefault(player.getUuid(), false);
-        vanishedPlayers.put(player.getUuid(), isVanished);
+        UUID profileId = player.getUuid();
+        boolean isVanished = !vanishedPlayers.getOrDefault(profileId, false);
+        vanishedPlayers.put(profileId, isVanished);
 
         player.setInvisible(isVanished);
         player.setInvulnerable(isVanished);
