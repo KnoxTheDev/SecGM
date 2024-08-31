@@ -1,7 +1,6 @@
 package secgm.secgm;
 
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -9,11 +8,11 @@ import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.world.GameMode;
 import net.minecraft.world.World;
@@ -52,7 +51,6 @@ public class SecGM implements ModInitializer {
         int gameModeId = IntegerArgumentType.getInteger(context, "gameModeId");
         ServerCommandSource source = context.getSource();
 
-        // Check if the command executor is a player
         if (source.getEntity() instanceof ServerPlayerEntity) {
             ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
             GameMode gameMode;
@@ -87,15 +85,17 @@ public class SecGM implements ModInitializer {
     private int executeVanishCommand(CommandContext<ServerCommandSource> context) {
         ServerCommandSource source = context.getSource();
 
-        // Check if the command executor is a player
         if (source.getEntity() instanceof ServerPlayerEntity) {
             ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
 
-            // Toggle vanish status
             if (player.hasStatusEffect(StatusEffects.INVISIBILITY)) {
+                // Make player visible again
                 player.removeStatusEffect(StatusEffects.INVISIBILITY);
                 player.setInvulnerable(false);
                 player.sendMessage(Text.of("You are now visible and vulnerable."), false);
+
+                // Fake join message
+                sendFakeJoinMessage(player);
 
                 // Make player's items and armor visible
                 updateItemVisibility(player.getInventory().main, true);
@@ -106,9 +106,13 @@ public class SecGM implements ModInitializer {
                 world.getEntitiesByClass(MobEntity.class, player.getBoundingBox().expand(100), mob -> true)
                         .forEach(mob -> mob.setTarget(player));
             } else {
+                // Make player invisible
                 player.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, Integer.MAX_VALUE, 0, false, false));
                 player.setInvulnerable(true);
                 player.sendMessage(Text.of("You are now invisible and invulnerable."), false);
+
+                // Fake leave message
+                sendFakeLeaveMessage(player);
 
                 // Make player's items and armor invisible
                 updateItemVisibility(player.getInventory().main, false);
@@ -126,18 +130,31 @@ public class SecGM implements ModInitializer {
         return 1;
     }
 
-    // Helper method to update item visibility
+    private void sendFakeLeaveMessage(ServerPlayerEntity player) {
+        Text leaveMessage = Text.literal(player.getEntityName() + " left the game")
+                .formatted(Formatting.YELLOW);
+        player.getServer().getPlayerManager().broadcast(leaveMessage, false);
+    }
+
+    private void sendFakeJoinMessage(ServerPlayerEntity player) {
+        Text joinMessage = Text.literal(player.getEntityName() + " joined the game")
+                .formatted(Formatting.YELLOW);
+        player.getServer().getPlayerManager().broadcast(joinMessage, false);
+    }
+
     private void updateItemVisibility(DefaultedList<ItemStack> items, boolean visible) {
         for (ItemStack stack : items) {
             if (!stack.isEmpty()) {
-                NbtCompound nbt = stack.getOrCreateNbt(); // Correct method to get or create NBT tag
                 if (visible) {
-                    nbt.remove("Invisible");
+                    // Remove glowing effect and custom name
+                    stack.setGlowing(false);
+                    stack.setCustomName(null);
                 } else {
-                    nbt.putBoolean("Invisible", true);
+                    // Set glowing effect and hide with a custom name
+                    stack.setGlowing(true);
+                    stack.setCustomName(Text.literal("Hidden Item").formatted(Formatting.DARK_GRAY, Formatting.ITALIC));
                 }
-                stack.setNbt(nbt); // Correct method to set NBT tag
             }
         }
     }
-    }
+}
