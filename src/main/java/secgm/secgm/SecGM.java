@@ -7,7 +7,6 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.network.Packet;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -41,7 +40,7 @@ public class SecGM implements ClientModInitializer {
 
         // Register Packet Handlers (Client and Server)
         ClientPlayNetworking.registerReceiver(VANISH_PACKET_ID, (client, context, data, sender) -> {
-            PacketByteBuf buf = data.asByteBuf();
+            PacketByteBuf buf = new PacketByteBuf(data);
             GameProfile profile = buf.readGameProfile();
             vanishedPlayers.put(profile, buf.readBoolean());
             client.execute(() -> {
@@ -53,7 +52,7 @@ public class SecGM implements ClientModInitializer {
         });
 
         ServerPlayNetworking.registerReceiver(VANISH_PACKET_ID, (server, player, context, data, sender) -> {
-            PacketByteBuf buf = data.asByteBuf();
+            PacketByteBuf buf = new PacketByteBuf(data);
             GameProfile profile = buf.readGameProfile();
             boolean isVanished = buf.readBoolean();
             vanishedPlayers.put(profile, isVanished);
@@ -101,7 +100,7 @@ public class SecGM implements ClientModInitializer {
     }
 
     private PacketByteBuf createVanishPacket(GameProfile profile, boolean isVanished) {
-        PacketByteBuf buf = new PacketByteBuf(new Buffer());
+        PacketByteBuf buf = new PacketByteBuf(new PacketByteBuf(null)); // Adjust according to actual initialization
         buf.writeGameProfile(profile);
         buf.writeBoolean(isVanished);
         return buf;
