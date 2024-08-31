@@ -1,104 +1,76 @@
 package secgm.secgm;
 
-import com.mojang.authlib.GameProfile;
-import io.netty.buffer.Unpooled;
-import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.client.MinecraftClient;
+import com.mojang.brigadier.CommandDispatcher;
+import net.minecraft.server.command.ServerCommandManager;
+import net.minecraft.text.LiteralText;
+import net.minecraft.text.Style;
+import net.minecraft.util.Formatting;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.GameMode;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
-public class SecGM implements ClientModInitializer {
-
-    public static final String MOD_ID = "secgm";
-    public static final Identifier VANISH_PACKET_ID = new Identifier(MOD_ID, "vanish_toggle");
-
-    private static final Map<UUID, Boolean> vanishedPlayers = new HashMap<>();
-
-    @Override
-    public void onInitializeClient() {
-        // Register Client Command using ClientCommandManager
-        ClientCommandManager.INSTANCE.getDispatcher().register(
-                ClientCommandManager.literal("vanish")
+public class SecgmMod {
+    public static void registerCommands(CommandDispatcher<ServerCommandManager.CommandSource> dispatcher) {
+        dispatcher.register(
+                ServerCommandManager.literal("vanish")
                         .executes(context -> {
-                            MinecraftClient client = MinecraftClient.getInstance();
-                            if (client.player != null) {
-                                toggleVanish(client.player);
+                            PlayerEntity player = context.getSource().getPlayer();
+                            if (player != null) {
+                                boolean isVanished = player.isSpectator();
+                                player.setSpectator(!isVanished);
+                                player.setInvisible(!isVanished);
+                                player.setInvulnerable(!isVanished);
+
+                                if (isVanished) {
+                                    player.sendMessage(new LiteralText("You are no longer vanished.").setStyle(Style.EMPTY.withColor(Formatting.YELLOW)));
+                                    player.getServer().getPlayerManager().broadcast(new LiteralText(player.getName().getString() + " has left the game.").setStyle(Style.EMPTY.withColor(Formatting.YELLOW)));
+                                } else {
+                                    player.sendMessage(new LiteralText("You are now vanished.").setStyle(Style.EMPTY.withColor(Formatting.YELLOW)));
+                                    player.getServer().getPlayerManager().broadcast(new LiteralText(player.getName().getString() + " has joined the game.").setStyle(Style.EMPTY.withColor(Formatting.YELLOW)));
+                                }
                             }
-                            return 1; // Command execution successful
+                            return 1;
                         })
         );
 
-        // Register Packet Handlers (Client and Server)
-        ClientPlayNetworking.registerGlobalReceiver(VANISH_PACKET_ID, (client, handler, buf, responseSender) -> {
-            UUID profileId = buf.readUuid();
-            boolean isVanished = buf.readBoolean();
-            client.execute(() -> {
-                PlayerEntity player = client.world.getPlayerByUuid(profileId);
-                if (player != null) {
-                    vanishedPlayers.put(profileId, isVanished);
-                    updatePlayerVisibility(player);
-                }
-            });
-        });
-
-        ServerPlayNetworking.registerGlobalReceiver(VANISH_PACKET_ID, (server, player, handler, buf, responseSender) -> {
-            UUID profileId = buf.readUuid();
-            boolean isVanished = buf.readBoolean();
-            server.execute(() -> {
-                ServerPlayerEntity serverPlayer = server.getPlayerManager().getPlayer(profileId);
-                if (serverPlayer != null) {
-                    vanishedPlayers.put(profileId, isVanished);
-                    toggleVanish(serverPlayer);
-                    sendFakeJoinLeaveMessages(serverPlayer, isVanished);
-                }
-            });
-        });
-    }
-
-    private void toggleVanish(PlayerEntity player) {
-        UUID profileId = player.getUuid();
-        boolean isVanished = !vanishedPlayers.getOrDefault(profileId, false);
-        vanishedPlayers.put(profileId, isVanished);
-
-        player.setInvisible(isVanished);
-        player.setInvulnerable(isVanished);
-        updatePlayerVisibility(player);
-    }
-
-    private void updatePlayerVisibility(PlayerEntity player) {
-        MinecraftServer server = player.getServer();
-        if (server != null) {
-            for (ServerPlayerEntity otherPlayer : server.getPlayerManager().getPlayerList()) {
-                if (otherPlayer != player) {
-                    otherPlayer.networkHandler.sendPacket(createVanishPacket(player.getUuid(), vanishedPlayers.get(player.getUuid())));
-                }
-            }
-        }
-    }
-
-    private void sendFakeJoinLeaveMessages(ServerPlayerEntity player, boolean isVanished) {
-        MinecraftServer server = player.getServer();
-        if (server != null) {
-            Text joinLeaveMessage = Text.of(player.getDisplayName().getString() + (isVanished ? " has left the game." : " has joined the game."));
-            server.getPlayerManager().broadcast(joinLeaveMessage, false);
-        }
-    }
-
-    private PacketByteBuf createVanishPacket(UUID profileId, boolean isVanished) {
-        PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-        buf.writeUuid(profileId);
-        buf.writeBoolean(isVanished);
-        return buf;
+        dispatcher.register(
+                ServerCommandManager.literal("secgm")
+                        .requires(ServerCommandManager.permissionLevel(2)) // Adjust permission level as needed
+                        .executes(context -> {
+                            PlayerEntity player = context.getSource().getPlayer();
+                            if (player != null) {
+                                player.setGameMode(GameMode.SURVIVAL);
+                                player.sendMessage(new LiteralText("Gamemode set to Survival.").setStyle(Style.EMPTY.withColor(Formatting.YELLOW)));
+                            }
+                            return 1;
+                        })
+                        .then(ServerCommandManager.literal("1")
+                                .executes(context -> {
+                                    PlayerEntity player = context.getSource().getPlayer();
+                                    if (player != null) {
+                                        player.setGameMode(GameMode.CREATIVE);
+                                        player.sendMessage(new LiteralText("Gamemode set to Creative.").setStyle(Style.EMPTY.withColor(Formatting.YELLOW)));
+                                    }
+                                    return 1;
+                                }))
+                        .then(ServerCommandManager.literal("2")
+                                .executes(context -> {
+                                    PlayerEntity player = context.getSource().getPlayer();
+                                    if (player != null) {
+                                        player.setGameMode(GameMode.ADVENTURE);
+                                        player.sendMessage(new LiteralText("Gamemode set to Adventure.").setStyle(Style.EMPTY.withColor(Formatting.YELLOW)));
+                                    }
+                                    return 1;
+                                }))
+                        .then(ServerCommandManager.literal("3")
+                                .executes(context -> {
+                                    PlayerEntity player = context.getSource().getPlayer();
+                                    if (player != null) {
+                                        player.setGameMode(GameMode.SPECTATOR);
+                                        player.sendMessage(new LiteralText("Gamemode set to Spectator.").setStyle(Style.EMPTY.withColor(Formatting.YELLOW)));
+                                    }
+                                    return 1;
+                                }))
+        );
     }
 }
