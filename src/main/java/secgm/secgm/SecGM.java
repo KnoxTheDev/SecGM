@@ -6,20 +6,16 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.network.packet.s2c.play.EntityMetadataS2CPacket;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.world.GameMode;
 import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityData;
-import net.minecraft.entity.EntityType;
-import net.minecraft.network.PacketByteBuf;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket;
 import net.minecraft.network.packet.s2c.play.EntityS2CPacket;
-import net.minecraft.network.packet.s2c.play.PlayerListItemS2CPacket;
-import net.minecraft.network.packet.s2c.play.EntityS2CPacket.EntityMetadata;
+import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,13 +118,21 @@ public class SecGM implements ModInitializer {
     }
 
     private void hideArmorAndItems(ServerPlayerEntity player) {
-        // Use packets to hide armor and items
-        player.networkHandler.sendPacket(new EntityMetadataS2CPacket(player.getId(), player.getDataTracker(), true));
+        // Hide armor and items
+        PlayerInventory inventory = player.getInventory();
+        inventory.armorInventory.forEach(stack -> stack.setCount(0));
+        inventory.mainInventory.forEach(stack -> stack.setCount(0));
+        inventory.offHand.forEach(stack -> stack.setCount(0));
+        player.updateTrackedPosition();
     }
 
     private void showArmorAndItems(ServerPlayerEntity player) {
-        // Use packets to show armor and items
-        player.networkHandler.sendPacket(new EntityMetadataS2CPacket(player.getId(), player.getDataTracker(), false));
+        // Show armor and items
+        PlayerInventory inventory = player.getInventory();
+        inventory.armorInventory.forEach(stack -> stack.setCount(1)); // Example count; adjust as necessary
+        inventory.mainInventory.forEach(stack -> stack.setCount(1)); // Example count; adjust as necessary
+        inventory.offHand.forEach(stack -> stack.setCount(1)); // Example count; adjust as necessary
+        player.updateTrackedPosition();
     }
 
     private int nick(CommandContext<ServerCommandSource> context) {
