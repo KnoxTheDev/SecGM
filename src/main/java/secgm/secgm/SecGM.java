@@ -1,49 +1,43 @@
 package secgm.secgm;
 
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.entity.event.v1.EntityDamageCallback;
-import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.player.PlayerAbilities;
-import net.minecraft.util.ActionResult;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.command.argument.EntityArgumentType;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.server.command.CommandManager;
+import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+import net.minecraft.world.GameMode;
+
+import static net.minecraft.server.command.CommandManager.argument;
+import static net.minecraft.server.command.CommandManager.literal;
 
 public class SecGM implements ModInitializer {
-
     @Override
     public void onInitialize() {
-        // Register event to continuously update player abilities
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            ClientPlayerEntity player = client.player;
-            if (player != null) {
-                enableCreativeFlight(player);
-            }
-        });
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            dispatcher.register(literal("secgm")
+                    .then(argument("mode", IntegerArgumentType.integer(0, 3))
+                            .executes(context -> {
+                                ServerPlayerEntity player = context.getSource().getPlayer();
+                                int mode = IntegerArgumentType.getInteger(context, "mode");
+                                GameMode gameMode = GameMode.byId(mode);
+                                player.changeGameMode(gameMode);
+                                context.getSource().sendFeedback(Text.literal("Gamemode changed to " + gameMode.getName()).formatted(Formatting.GREEN), true);
+                                return 1;
+                            })));
 
-        // Prevent fall damage
-        EntityDamageCallback.EVENT.register((entity, source, amount) -> {
-            if (entity instanceof ClientPlayerEntity && source == DamageSource.FALL) {
-                return ActionResult.FAIL; // Cancels the fall damage
-            }
-            return ActionResult.PASS; // Allows other damage types
+            dispatcher.register(literal("vanish")
+                    .executes(context -> {
+                        ServerPlayerEntity player = context.getSource().getPlayer();
+                        boolean isVanished = player.isInvisible();
+                        player.setInvisible(!isVanished);
+                        player.setInvulnerable(!isVanished);
+                        player.sendMessage(Text.literal("You are now " + (isVanished ? "visible" : "invisible")).formatted(isVanished ? Formatting.GREEN : Formatting.RED), true);
+                        return 1;
+                    }));
         });
-
-        // Prevent knockback when attacked
-        AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (player != null && player instanceof ClientPlayerEntity) {
-                player.setVelocity(0, 0, 0); // Stops any knockback effects
-            }
-            return ActionResult.PASS;
-        });
-    }
-
-    // Enables Creative flight for the player
-    private void enableCreativeFlight(ClientPlayerEntity player) {
-        PlayerAbilities abilities = player.getAbilities();
-        abilities.allowFlying = true; // Allow flying in all game modes
-        abilities.flying = player.input.jumping || abilities.flying; // Start flying if jumping
-        player.sendAbilitiesUpdate(); // Sync the abilities with the server
     }
 }
