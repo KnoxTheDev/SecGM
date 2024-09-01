@@ -61,7 +61,7 @@ jobs:
         if: ${{ matrix.java == '21' && github.actor != 'github-actions' }} # Avoid commits from GitHub Actions bot
         run: |
           echo "${{ secrets.MY_GITHUB_TOKEN }}" | gh auth login --with-token
-          VERSION=$(date +'%Y%m%d%H%M%S')
+          VERSION=$(date)
           gh release create "v${VERSION}" build/libs/*
           echo "Release v${VERSION} created with build artifacts."
 
