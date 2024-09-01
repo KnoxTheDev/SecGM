@@ -61,13 +61,10 @@ jobs:
         id: get_short_sha
         run: echo "SHORT_SHA=$(git rev-parse --short=7 HEAD)" >> $GITHUB_ENV
 
-      - name: Authenticate GitHub CLI
-        env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-        run: echo "${GITHUB_TOKEN}" | gh auth login --with-token
-
       - name: Create Release
         if: ${{ matrix.java == 21 && github.actor != 'github-actions' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
         run: |
           VERSION="${{ env.SHORT_SHA }}"
           RELEASE_NOTES="Automated release created on $(date). Commit SHA: $VERSION. Build artifacts include: $(ls build/libs/)"
