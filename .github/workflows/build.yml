@@ -74,7 +74,7 @@ jobs:
           git stash # Save unstaged changes
           git pull --rebase origin main
           git stash pop # Reapply stashed changes
-          cp -r build/libs/* .
+          # Correctly add the artifacts to the staging area
           git add build/libs
           git commit -m 'Add build artifacts [skip ci]' || echo "No changes to commit"
           git push origin main || echo "Push failed, please resolve manually"
