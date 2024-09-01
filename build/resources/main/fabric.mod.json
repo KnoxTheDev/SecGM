@@ -1,0 +1,37 @@
+{
+    "schemaVersion": 1,
+    "id": "secgm",
+    "version": "1.0.0",
+    "name": "SecGM",
+    "description": "This is an example description! Tell everyone what your mod is about!",
+    "authors": [
+        "Me!"
+    ],
+    "contact": {
+        "homepage": "https://github.com/KnoxTheDev/",
+        "sources": "https://github.com/KnoxTheDev/SecGM/"
+    },
+    "license": "CC0-1.0",
+    "icon": "assets/secgm/icon.png",
+    "environment": "*",
+    "entrypoints": {
+        "main": [
+            "secgm.secgm.SecGM"
+        ],
+        "fabric-datagen": [
+            "secgm.secgm.SecGMDataGenerator"
+        ]
+    },
+    "mixins": [
+        "secgm.mixins.json"
+    ],
+    "depends": {
+        "fabricloader": ">=0.10.0",
+        "minecraft": "*",
+        "java": ">=17",
+        "fabric-api": "*"
+    },
+    "suggests": {
+        "another-mod": "*"
+    }
+}
