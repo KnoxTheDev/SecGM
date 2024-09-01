@@ -48,7 +48,7 @@ jobs:
         run: ./gradlew build --parallel --max-workers=4
 
       - name: Capture build artifacts
-        if: ${{ matrix.java == '21' }} # Only upload artifacts built from latest java
+        if: ${{ matrix.java == 21 }} # Only upload artifacts built from latest java
         uses: actions/upload-artifact@v4
         with:
           name: Artifacts
@@ -62,7 +62,7 @@ jobs:
         run: echo "SHORT_SHA=$(git rev-parse --short=7 HEAD)" >> $GITHUB_ENV
 
       - name: Create Release
-        if: ${{ matrix.java == '21' && github.actor != 'github-actions' }}
+        if: ${{ matrix.java == 21 && github.actor != 'github-actions' }}
         run: |
           echo "${{ secrets.MY_GITHUB_TOKEN }}" | gh auth login --with-token
           VERSION="${{ env.SHORT_SHA }}"
@@ -72,7 +72,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
           
       - name: Commit and push build artifacts
-        if: ${{ matrix.java == '21' && github.actor != 'github-actions' }} # Avoid commits from GitHub Actions bot
+        if: ${{ matrix.java == 21 && github.actor != 'github-actions' }} # Avoid commits from GitHub Actions bot
         run: |
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
@@ -84,3 +84,4 @@ jobs:
           git add . # Add all untracked files
           git commit -m 'Add build artifacts [skip ci]' || echo "No changes to commit"
           git push origin main || echo "Push failed, please resolve manually"
+          
