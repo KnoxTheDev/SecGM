@@ -1,8 +1,8 @@
 # SecGM (Secret GameMode)
-![Forks](https://img.shields.io/github/forks/KnoxTheDev/SecGM)
-![Stars](https://img.shields.io/github/stars/KnoxTheDev/SecGM)
-![GitHub Actions](https://github.com/KnoxTheDev/SecGM/actions/workflows/build.yml/badge.svg)
-![Latest Release](https://img.shields.io/github/v/release/KnoxTheDev/SecGM)
+[![Forks](https://img.shields.io/github/forks/KnoxTheDev/SecGM)](https://github.com/KnoxTheDev/SecGM/network/members)
+[![Stars](https://img.shields.io/github/stars/KnoxTheDev/SecGM)](https://github.com/KnoxTheDev/SecGM/stargazers)
+[![GitHub Actions](https://github.com/KnoxTheDev/SecGM/actions/workflows/build.yml/badge.svg)](https://github.com/KnoxTheDev/SecGM/actions/workflows/build.yml)
+[![Latest Release](https://img.shields.io/github/v/release/KnoxTheDev/SecGM)](https://github.com/KnoxTheDev/SecGM/releases/latest)
 
 SecGM is a Minecraft Fabric mod that adds a private `/secgm` command, allowing players to switch between game modes (Survival, Creative, Adventure, Spectator) using numbers (`0`, `1`, `2`, `3`) without broadcasting their actions to the server or other players. This mod is ideal for players who want to change game modes discreetly.
 
