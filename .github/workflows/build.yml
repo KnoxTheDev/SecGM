@@ -57,14 +57,20 @@ jobs:
       - name: Install GitHub CLI
         run: sudo apt-get install gh
 
+      - name: Get Short SHA
+        id: get_short_sha
+        run: echo "SHORT_SHA=$(git rev-parse --short=7 HEAD)" >> $GITHUB_ENV
+
       - name: Create Release
-        if: ${{ matrix.java == '21' && github.actor != 'github-actions' }} # Avoid commits from GitHub Actions bot
+        if: ${{ matrix.java == '21' && github.actor != 'github-actions' }}
         run: |
           echo "${{ secrets.MY_GITHUB_TOKEN }}" | gh auth login --with-token
-          VERSION=$(date)
-          gh release create "v${VERSION}" build/libs/*
-          echo "Release v${VERSION} created with build artifacts."
-
+          VERSION="${{ env.SHORT_SHA }}"
+          RELEASE_NOTES="Automated release created on $(date). Commit SHA: $VERSION. Build artifacts include: $(ls build/libs/)"
+          gh release create "v${VERSION}" --title "Release v${VERSION}" --notes "${RELEASE_NOTES}" build/libs/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+          
       - name: Commit and push build artifacts
         if: ${{ matrix.java == '21' && github.actor != 'github-actions' }} # Avoid commits from GitHub Actions bot
         run: |
