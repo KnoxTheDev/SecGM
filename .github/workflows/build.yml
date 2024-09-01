@@ -71,9 +71,10 @@ jobs:
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           git checkout main
+          git stash save --include-untracked # Save unstaged and untracked changes
           git pull --rebase origin main
-          # Ensure the correct path is used
-          cp -r build/libs/* .
-          git add .
+          git stash pop # Reapply stashed changes
+          git add build/libs
+          git add . # Add all untracked files
           git commit -m 'Add build artifacts [skip ci]' || echo "No changes to commit"
           git push origin main || echo "Push failed, please resolve manually"
