@@ -21,7 +21,7 @@
 
 - ![Commits](https://badgen.net/github/commits/KnoxTheDev/SecGM)
 - ![Checks](https://badgen.net/github/checks/KnoxTheDev/SecGM)
-- ![Build Status](https://badgen.net/github/checks/KnoxTheDev/SecGM/main/build.yml)
+- [![GitHub Actions](https://github.com/KnoxTheDev/SecGM/actions/workflows/build.yml/badge.svg)](https://github.com/KnoxTheDev/SecGM/actions/workflows/build.yml)
 
 ### Issues and Pull Requests
 
