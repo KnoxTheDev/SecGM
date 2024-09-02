@@ -1,5 +1,7 @@
-package secgm.secgm; 
+package secgm.secgm;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.server.command.ServerCommandSource;
@@ -12,10 +14,21 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 
+import java.io.*;
+import java.lang.reflect.Type;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 public class SecGM implements ModInitializer {
+
+    private static final String VANISH_STATUS_FILE = "vanish_status.json";
+    private Map<UUID, Boolean> vanishStatuses = new HashMap<>();
+    private Gson gson = new Gson();
 
     @Override
     public void onInitialize() {
+        loadVanishStatuses();
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             registerSecGMCommand(dispatcher);
             registerVanishCommand(dispatcher);
@@ -58,9 +71,12 @@ public class SecGM implements ModInitializer {
     private int toggleVanish(CommandContext<ServerCommandSource> context) {
         ServerPlayerEntity player = context.getSource().getPlayer();
         if (player != null) {
-            boolean isVanished = player.isInvisible() && player.isInvulnerable();
+            UUID playerId = player.getUuid();
+            boolean isVanished = vanishStatuses.getOrDefault(playerId, false);
             player.setInvisible(!isVanished);
             player.setInvulnerable(!isVanished);
+            vanishStatuses.put(playerId, !isVanished);
+            saveVanishStatuses();
             player.sendMessage(Text.literal((isVanished ? "Unvanished" : "Vanished") + " and made " + (isVanished ? "visible" : "invisible") + ".").formatted(Formatting.YELLOW), true);
             if (!isVanished) {
                 sendFakeLeaveMessage(player);
@@ -79,5 +95,26 @@ public class SecGM implements ModInitializer {
     private void sendFakeJoinMessage(ServerPlayerEntity player) {
         ServerWorld world = player.getServerWorld();
         world.getPlayers().forEach(p -> p.sendMessage(Text.literal(player.getDisplayName().getString() + " joined the game").formatted(Formatting.YELLOW), false));
+    }
+
+    private void loadVanishStatuses() {
+        File file = new File(VANISH_STATUS_FILE);
+        if (file.exists()) {
+            try (Reader reader = new FileReader(file)) {
+                Type type = new TypeToken<Map<UUID, Boolean>>(){}.getType();
+                vanishStatuses = gson.fromJson(reader, type);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void saveVanishStatuses() {
+        File file = new File(VANISH_STATUS_FILE);
+        try (Writer writer = new FileWriter(file)) {
+            gson.toJson(vanishStatuses, writer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
