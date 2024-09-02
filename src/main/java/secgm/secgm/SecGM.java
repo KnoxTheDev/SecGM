@@ -57,11 +57,16 @@ public class SecGM implements ModInitializer {
 
     private GameMode getGameModeFromInt(int mode) {
         switch (mode) {
-            case 0: return GameMode.SURVIVAL;
-            case 1: return GameMode.CREATIVE;
-            case 2: return GameMode.ADVENTURE;
-            case 3: return GameMode.SPECTATOR;
-            default: return null;
+            case 0:
+                return GameMode.SURVIVAL;
+            case 1:
+                return GameMode.CREATIVE;
+            case 2:
+                return GameMode.ADVENTURE;
+            case 3:
+                return GameMode.SPECTATOR;
+            default:
+                return null;
         }
     }
 
@@ -88,30 +93,29 @@ public class SecGM implements ModInitializer {
         return 1;
     }
 
-private void updatePlayerVisibility(ServerPlayerEntity player, boolean isVisible) {
-private void updatePlayerVisibility(ServerPlayerEntity player, boolean isVisible) {
-    player.setInvisible(!isVisible);
-    player.setInvulnerable(!isVisible);
+    private void updatePlayerVisibility(ServerPlayerEntity player, boolean isVisible) {
+        player.setInvisible(!isVisible);
+        player.setInvulnerable(!isVisible);
 
-    // Update main inventory items
-    for (ItemStack item : player.getInventory().main) {
-        if (item != null) {
-            NbtCompound nbt = item.getOrCreateNbt(); // Correct method name
-            nbt.putBoolean("Invisible", !isVisible);
-            item.setNbt(nbt); // Correct method name
+        // Update main inventory items
+        for (ItemStack item : player.getInventory().main) {
+            if (item != null) {
+                NbtCompound nbt = item.getOrCreateNbt();
+                nbt.putBoolean("Invisible", !isVisible);
+                item.setNbt(nbt);
+            }
+        }
+
+        // Update armor items
+        for (ItemStack armor : player.getInventory().armor) {
+            if (armor != null) {
+                NbtCompound nbt = armor.getOrCreateNbt();
+                nbt.putBoolean("Invisible", !isVisible);
+                armor.setNbt(nbt);
+            }
         }
     }
 
-    // Update armor items
-    for (ItemStack armor : player.getInventory().armor) {
-        if (armor != null) {
-            NbtCompound nbt = armor.getOrCreateNbt(); // Correct method name
-            nbt.putBoolean("Invisible", !isVisible);
-            armor.setNbt(nbt); // Correct method name
-        }
-    }
-}
-    
     private void sendFakeLeaveMessage(ServerPlayerEntity player) {
         ServerWorld world = player.getServerWorld();
         world.getPlayers().forEach(p -> p.sendMessage(Text.literal(player.getDisplayName().getString() + " left the game").formatted(Formatting.YELLOW), false));
