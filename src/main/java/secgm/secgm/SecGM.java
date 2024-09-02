@@ -4,10 +4,6 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -17,6 +13,7 @@ import net.minecraft.world.GameMode;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import net.minecraft.nbt.NbtCompound;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -94,14 +91,20 @@ public class SecGM implements ModInitializer {
         player.setInvisible(!isVisible);
         player.setInvulnerable(!isVisible);
 
-        // Update the visibility of items and armor
-        for (int slot = 0; slot < player.getInventory().size(); slot++) {
-            ItemStack item = player.getInventory().getStack(slot);
-            if (!item.isEmpty()) {
-                NbtCompound nbt = item.getOrCreateNbt();
-                nbt.putBoolean("Invisible", !isVisible);
-                item.setNbt(nbt);
-            }
+        // Instead of using non-existent methods, we can set an NBT tag to manage visibility.
+        for (int i = 0; i < player.getInventory().size(); i++) {
+            ItemStack item = player.getInventory().getStack(i);
+            NbtCompound nbt = item.getOrCreateNbt();
+            nbt.putBoolean("Invisible", !isVisible);
+            item.setNbt(nbt);
+        }
+
+        // Handle armor
+        for (int i = 0; i < player.getArmorItems().size(); i++) {
+            ItemStack armor = player.getArmorItems().get(i);
+            NbtCompound nbt = armor.getOrCreateNbt();
+            nbt.putBoolean("Invisible", !isVisible);
+            armor.setNbt(nbt);
         }
     }
 
