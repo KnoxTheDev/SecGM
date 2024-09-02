@@ -116,5 +116,23 @@ public class SecGM implements ModInitializer {
 
     private void sendFakeJoinMessage(ServerPlayerEntity player) {
         ServerWorld world = player.getServerWorld();
-        world.getPlayers().forEach(p -> p.sendMessage(Text.literal(player
-                                                                   
+        world.getPlayers().forEach(p -> p.sendMessage(Text.literal(player.getDisplayName().getString() + " joined the game").formatted(Formatting.YELLOW), false));
+    }
+
+    private void loadVanishStatuses() {
+        try (Reader reader = new FileReader(VANISH_STATUS_FILE)) {
+            Type type = new TypeToken<Map<UUID, Boolean>>() {}.getType();
+            vanishStatuses = gson.fromJson(reader, type);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void saveVanishStatuses() {
+        try (Writer writer = new FileWriter(VANISH_STATUS_FILE)) {
+            gson.toJson(vanishStatuses, writer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
