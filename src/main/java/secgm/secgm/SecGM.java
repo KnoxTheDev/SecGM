@@ -15,6 +15,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.PacketByteBuf;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -96,22 +97,20 @@ public class SecGM implements ModInitializer {
     private void updatePlayerVisibility(ServerPlayerEntity player, boolean isVisible) {
         player.setInvisible(!isVisible);
         player.setInvulnerable(!isVisible);
+        updateItemsVisibility(player.getInventory().main, !isVisible);
+        updateItemsVisibility(player.getInventory().armor, !isVisible);
+    }
 
-        // Update main inventory items
-        for (ItemStack item : player.getInventory().main) {
+    private void updateItemsVisibility(ItemStack[] items, boolean isInvisible) {
+        for (ItemStack item : items) {
             if (item != null) {
                 NbtCompound nbt = item.getOrCreateNbt();
-                nbt.putBoolean("Invisible", !isVisible);
+                nbt.putBoolean("Invisible", isInvisible);
                 item.setNbt(nbt);
-            }
-        }
-
-        // Update armor items
-        for (ItemStack armor : player.getInventory().armor) {
-            if (armor != null) {
-                NbtCompound nbt = armor.getOrCreateNbt();
-                nbt.putBoolean("Invisible", !isVisible);
-                armor.setNbt(nbt);
+                // Use PacketByteBuf for network transmission
+                PacketByteBuf buffer = new PacketByteBuf(Unpooled.buffer());
+                buffer.writeNbt(nbt);
+                // Here you would send the buffer to the client
             }
         }
     }
@@ -131,7 +130,7 @@ public class SecGM implements ModInitializer {
             Type type = new TypeToken<Map<UUID, Boolean>>() {}.getType();
             vanishStatuses = gson.fromJson(reader, type);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Error loading vanish statuses: " + e.getMessage());
         }
     }
 
@@ -139,7 +138,7 @@ public class SecGM implements ModInitializer {
         try (Writer writer = new FileWriter(VANISH_STATUS_FILE)) {
             gson.toJson(vanishStatuses, writer);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Error saving vanish statuses: " + e.getMessage());
         }
     }
-}
+    }
