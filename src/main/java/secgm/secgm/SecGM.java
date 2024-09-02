@@ -13,6 +13,7 @@ import net.minecraft.world.GameMode;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 
 import java.io.*;
@@ -115,27 +116,5 @@ public class SecGM implements ModInitializer {
 
     private void sendFakeJoinMessage(ServerPlayerEntity player) {
         ServerWorld world = player.getServerWorld();
-        world.getPlayers().forEach(p -> p.sendMessage(Text.literal(player.getDisplayName().getString() + " joined the game").formatted(Formatting.YELLOW), false));
-    }
-
-    private void loadVanishStatuses() {
-        File file = new File(VANISH_STATUS_FILE);
-        if (file.exists()) {
-            try (Reader reader = new FileReader(file)) {
-                Type type = new TypeToken<Map<UUID, Boolean>>(){}.getType();
-                vanishStatuses = gson.fromJson(reader, type);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    private void saveVanishStatuses() {
-        File file = new File(VANISH_STATUS_FILE);
-        try (Writer writer = new FileWriter(file)) {
-            gson.toJson(vanishStatuses, writer);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-}
+        world.getPlayers().forEach(p -> p.sendMessage(Text.literal(player
+                                                                   
