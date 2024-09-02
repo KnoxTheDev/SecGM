@@ -73,9 +73,8 @@ public class SecGM implements ModInitializer {
         if (player != null) {
             UUID playerId = player.getUuid();
             boolean isVanished = vanishStatuses.getOrDefault(playerId, false);
-            player.setInvisible(!isVanished);
-            player.setInvulnerable(!isVanished);
             vanishStatuses.put(playerId, !isVanished);
+            updatePlayerVisibility(player, !isVanished);
             saveVanishStatuses();
             player.sendMessage(Text.literal((isVanished ? "Unvanished" : "Vanished") + " and made " + (isVanished ? "visible" : "invisible") + ".").formatted(Formatting.YELLOW), true);
             if (!isVanished) {
@@ -85,6 +84,19 @@ public class SecGM implements ModInitializer {
             }
         }
         return 1;
+    }
+
+    private void updatePlayerVisibility(ServerPlayerEntity player, boolean isVisible) {
+        player.setInvisible(!isVisible);
+        player.setInvulnerable(!isVisible);
+        // Update the visibility of items and armor
+        if (isVisible) {
+            player.getItemsHand().forEach(item -> item.setInvisible(false));
+            player.getArmorItems().forEach(item -> item.setInvisible(false));
+        } else {
+            player.getItemsHand().forEach(item -> item.setInvisible(true));
+            player.getArmorItems().forEach(item -> item.setInvisible(true));
+        }
     }
 
     private void sendFakeLeaveMessage(ServerPlayerEntity player) {
