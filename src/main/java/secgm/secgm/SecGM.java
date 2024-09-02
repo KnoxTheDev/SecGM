@@ -16,6 +16,7 @@ import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
+import io.netty.buffer.Unpooled;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -97,13 +98,13 @@ public class SecGM implements ModInitializer {
     private void updatePlayerVisibility(ServerPlayerEntity player, boolean isVisible) {
         player.setInvisible(!isVisible);
         player.setInvulnerable(!isVisible);
-        updateItemsVisibility(player.getInventory().main, !isVisible);
-        updateItemsVisibility(player.getInventory().armor, !isVisible);
+        updateItemsVisibility(player.getInventory().main.toArray(new ItemStack[0]), !isVisible);
+        updateItemsVisibility(player.getInventory().armor.toArray(new ItemStack[0]), !isVisible);
     }
 
     private void updateItemsVisibility(ItemStack[] items, boolean isInvisible) {
         for (ItemStack item : items) {
-            if (item != null) {
+            if (!item.isEmpty()) {
                 NbtCompound nbt = item.getOrCreateNbt();
                 nbt.putBoolean("Invisible", isInvisible);
                 item.setNbt(nbt);
@@ -141,4 +142,4 @@ public class SecGM implements ModInitializer {
             System.err.println("Error saving vanish statuses: " + e.getMessage());
         }
     }
-    }
+}
