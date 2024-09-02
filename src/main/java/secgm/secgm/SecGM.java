@@ -4,6 +4,9 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -89,13 +92,11 @@ public class SecGM implements ModInitializer {
     private void updatePlayerVisibility(ServerPlayerEntity player, boolean isVisible) {
         player.setInvisible(!isVisible);
         player.setInvulnerable(!isVisible);
-        // Update the visibility of items and armor
-        if (isVisible) {
-            player.getItemsHand().forEach(item -> item.setInvisible(false));
-            player.getArmorItems().forEach(item -> item.setInvisible(false));
-        } else {
-            player.getItemsHand().forEach(item -> item.setInvisible(true));
-            player.getArmorItems().forEach(item -> item.setInvisible(true));
+        for (EquipmentSlot slot : EquipmentSlot.values()) {
+            ItemStack item = player.getEquippedStack(slot);
+            NbtCompound nbt = item.getOrCreateNbt();
+            nbt.putBoolean("Invisible", !isVisible);
+            item.setNbt(nbt);
         }
     }
 
