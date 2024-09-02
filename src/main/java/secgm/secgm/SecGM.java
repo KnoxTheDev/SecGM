@@ -89,28 +89,29 @@ public class SecGM implements ModInitializer {
     }
 
 private void updatePlayerVisibility(ServerPlayerEntity player, boolean isVisible) {
+private void updatePlayerVisibility(ServerPlayerEntity player, boolean isVisible) {
     player.setInvisible(!isVisible);
     player.setInvulnerable(!isVisible);
 
     // Update main inventory items
     for (ItemStack item : player.getInventory().main) {
         if (item != null) {
-            NbtCompound nbt = item.getOrCreateTag(); // Use getOrCreateTag() instead of getOrCreateNbt()
+            NbtCompound nbt = item.getOrCreateNbt(); // Correct method name
             nbt.putBoolean("Invisible", !isVisible);
-            item.setTag(nbt); // Use setTag() instead of setNbt()
+            item.setNbt(nbt); // Correct method name
         }
     }
 
     // Update armor items
     for (ItemStack armor : player.getInventory().armor) {
         if (armor != null) {
-            NbtCompound nbt = armor.getOrCreateTag(); // Use getOrCreateTag() instead of getOrCreateNbt()
+            NbtCompound nbt = armor.getOrCreateNbt(); // Correct method name
             nbt.putBoolean("Invisible", !isVisible);
-            armor.setTag(nbt); // Use setTag() instead of setNbt()
+            armor.setNbt(nbt); // Correct method name
         }
     }
 }
-
+    
     private void sendFakeLeaveMessage(ServerPlayerEntity player) {
         ServerWorld world = player.getServerWorld();
         world.getPlayers().forEach(p -> p.sendMessage(Text.literal(player.getDisplayName().getString() + " left the game").formatted(Formatting.YELLOW), false));
