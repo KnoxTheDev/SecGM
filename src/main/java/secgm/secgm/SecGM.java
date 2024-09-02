@@ -93,19 +93,21 @@ public class SecGM implements ModInitializer {
         player.setInvulnerable(!isVisible);
 
         // Instead of using non-existent methods, we can set an NBT tag to manage visibility.
-        for (int i = 0; i < player.getInventory().size(); i++) {
-            ItemStack item = player.getInventory().getStack(i);
-            NbtCompound nbt = item.getOrCreateNbt();
-            nbt.putBoolean("Invisible", !isVisible);
-            item.setNbt(nbt);
+        for (ItemStack item : player.getInventory().main) {
+            if (item != null) {
+                NbtCompound nbt = item.getOrCreateNbt();
+                nbt.putBoolean("Invisible", !isVisible);
+                item.setNbt(nbt);
+            }
         }
 
         // Handle armor
-        for (int i = 0; i < player.getArmorItems().size(); i++) {
-            ItemStack armor = player.getArmorItems().get(i);
-            NbtCompound nbt = armor.getOrCreateNbt();
-            nbt.putBoolean("Invisible", !isVisible);
-            armor.setNbt(nbt);
+        for (ItemStack armor : player.getInventory().armor) {
+            if (armor != null) {
+                NbtCompound nbt = armor.getOrCreateNbt();
+                nbt.putBoolean("Invisible", !isVisible);
+                armor.setNbt(nbt);
+            }
         }
     }
 
