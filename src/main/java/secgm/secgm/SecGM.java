@@ -88,28 +88,28 @@ public class SecGM implements ModInitializer {
         return 1;
     }
 
-    private void updatePlayerVisibility(ServerPlayerEntity player, boolean isVisible) {
-        player.setInvisible(!isVisible);
-        player.setInvulnerable(!isVisible);
+private void updatePlayerVisibility(ServerPlayerEntity player, boolean isVisible) {
+    player.setInvisible(!isVisible);
+    player.setInvulnerable(!isVisible);
 
-        // Instead of using non-existent methods, we can set an NBT tag to manage visibility.
-        for (ItemStack item : player.getInventory().main) {
-            if (item != null) {
-                NbtCompound nbt = item.getOrCreateNbt();
-                nbt.putBoolean("Invisible", !isVisible);
-                item.setNbt(nbt);
-            }
-        }
-
-        // Handle armor
-        for (ItemStack armor : player.getInventory().armor) {
-            if (armor != null) {
-                NbtCompound nbt = armor.getOrCreateNbt();
-                nbt.putBoolean("Invisible", !isVisible);
-                armor.setNbt(nbt);
-            }
+    // Update main inventory items
+    for (ItemStack item : player.getInventory().main) {
+        if (item != null) {
+            NbtCompound nbt = item.getOrCreateTag(); // Use getOrCreateTag() instead of getOrCreateNbt()
+            nbt.putBoolean("Invisible", !isVisible);
+            item.setTag(nbt); // Use setTag() instead of setNbt()
         }
     }
+
+    // Update armor items
+    for (ItemStack armor : player.getInventory().armor) {
+        if (armor != null) {
+            NbtCompound nbt = armor.getOrCreateTag(); // Use getOrCreateTag() instead of getOrCreateNbt()
+            nbt.putBoolean("Invisible", !isVisible);
+            armor.setTag(nbt); // Use setTag() instead of setNbt()
+        }
+    }
+}
 
     private void sendFakeLeaveMessage(ServerPlayerEntity player) {
         ServerWorld world = player.getServerWorld();
