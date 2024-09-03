@@ -7,24 +7,25 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBinding;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.minecraft.client.option.KeyBind;
 
 public class SecGM implements ClientModInitializer {
-    private MinecraftClient mc = MinecraftClient.getInstance();
-    private Input input;
+    private final MinecraftClient mc = MinecraftClient.getInstance();
+    private final Input input = mc.input;
+
+    private final KeyBinding flyHackKeyBinding = new KeyBinding("FlyHack", KeyBindingHelper.getOrCreate("secgm.secgm"), 70); // F key
 
     private boolean freecamEnabled = false;
     private double storedX, storedY, storedZ;
 
     @Override
     public void onInitializeClient() {
-        input = mc.getInput();
-        KeyBinding flyHackKeyBinding = new KeyBinding("FlyHack", KeyBindingHelper.getOrCreate("secgm.secgm"), 70); // F key
         KeyBindingHelper.registerKeyBinding(flyHackKeyBinding);
         ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
     }
 
-    private void onTick() {
-        if (input.isKeyPressed(flyHackKeyBinding.getDefaultKey())) { // F key
+    private void onTick(MinecraftClient client) {
+        if (flyHackKeyBinding.isPressed()) { // Check if the key is pressed
             if (!freecamEnabled) {
                 storedX = mc.player.getX();
                 storedY = mc.player.getY();
@@ -41,10 +42,11 @@ public class SecGM implements ClientModInitializer {
         }
 
         if (freecamEnabled) {
-            input.jump = false;
-            input.sneak = false;
-            input.moveForward = 0;
-            input.moveStrafe = 0;
+            // Disable movement by overriding input values
+            input.pressingJump = false;
+            input.pressingSneak = false;
+            input.forwardSpeed = 0.0F;
+            input.sidewaysSpeed = 0.0F;
         }
     }
 }
