@@ -15,7 +15,7 @@
     "icon": "assets/secgm/icon.png",
     "environment": "*",
     "entrypoints": {
-        "main": [
+        "client": [
             "secgm.secgm.SecGM"
         ],
         "fabric-datagen": [
