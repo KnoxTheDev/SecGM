@@ -2,18 +2,22 @@ package secgm.secgm;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.input.Input;
+import net.minecraft.client.option.KeyBinding;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBinding;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.client.option.KeyBind;
 
 public class SecGM implements ClientModInitializer {
     private final MinecraftClient mc = MinecraftClient.getInstance();
     private final Input input = mc.input;
 
-    private final KeyBinding flyHackKeyBinding = new KeyBinding("FlyHack", KeyBindingHelper.getOrCreate("secgm.secgm"), 70); // F key
+    private final KeyBinding flyHackKeyBinding = new KeyBinding(
+            "key.secgm.flyhack", // Key description
+            KeyBindingHelper.getOrCreate("secgm.secgm"), // Key category
+            70, // Key code for F key
+            "category.secgm" // Category
+    );
 
     private boolean freecamEnabled = false;
     private double storedX, storedY, storedZ;
