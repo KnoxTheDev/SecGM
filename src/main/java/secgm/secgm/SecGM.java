@@ -1,145 +1,102 @@
-package secgm.secgm;
+package secgm.secgm; // Ensure this package matches your file structure
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
+import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.world.GameMode;
-import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.mojang.brigadier.context.CommandContext;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.PacketByteBuf;
-import io.netty.buffer.Unpooled;
+import net.minecraft.util.math.Vec3d;
+import org.lwjgl.glfw.GLFW;
 
-import java.io.*;
-import java.lang.reflect.Type;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+public class SecGM implements ClientModInitializer {
 
-public class SecGM implements ModInitializer {
-
-    private static final String VANISH_STATUS_FILE = "vanish_status.json";
-    private Map<UUID, Boolean> vanishStatuses = new HashMap<>();
-    private Gson gson = new Gson();
+    private KeyBinding flyHackKey; // Keybinding for toggling the fly hack
+    private boolean isFlyHackEnabled = false; // Toggle state
+    private Vec3d storedPosition; // Store player's last position
+    private boolean isFreecamActive = false; // Freecam-like state
 
     @Override
-    public void onInitialize() {
-        loadVanishStatuses();
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            registerSecGMCommand(dispatcher);
-            registerVanishCommand(dispatcher);
+    public void onInitializeClient() {
+        // Register the fly hack keybinding (F key)
+        flyHackKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.secgm.flyhack", // Description
+                InputUtil.Type.KEYSYM, // Key type
+                GLFW.GLFW_KEY_F, // Key code for F key
+                "category.secgm" // Category
+        ));
+
+        // Event listener for key presses
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (flyHackKey.wasPressed()) {
+                toggleFlyHack(client);
+            }
+
+            // Handle fly mode movement if fly hack is active
+            if (isFlyHackEnabled && isFreecamActive) {
+                handleFlyMode(client);
+            }
         });
     }
 
-    private void registerSecGMCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
-        dispatcher.register(net.minecraft.server.command.CommandManager.literal("secgm")
-            .then(net.minecraft.server.command.CommandManager.argument("mode", IntegerArgumentType.integer(0, 3))
-                .executes(context -> changeGameMode(context, IntegerArgumentType.getInteger(context, "mode")))));
-    }
+    // Toggle the fly hack on/off
+    private void toggleFlyHack(MinecraftClient client) {
+        try {
+            isFlyHackEnabled = !isFlyHackEnabled; // Toggle state
 
-    private int changeGameMode(CommandContext<ServerCommandSource> context, int mode) {
-        ServerPlayerEntity player = context.getSource().getPlayer();
-        if (player != null) {
-            GameMode gameMode = getGameModeFromInt(mode);
-            if (gameMode != null) {
-                player.changeGameMode(gameMode);
-                player.sendMessage(Text.literal("Game mode changed discreetly.").formatted(Formatting.YELLOW), true);
+            if (client.player != null) {
+                ClientPlayerEntity player = client.player;
+
+                if (isFlyHackEnabled) {
+                    // Store the current position and enable freecam-like movement
+                    storedPosition = player.getPos();
+                    isFreecamActive = true;
+
+                    // Notify user
+                    client.inGameHud.setOverlayMessage(Text.of("FlyHack Enabled"), false);
+                } else {
+                    // Sync player position back to the stored position when toggled off
+                    isFreecamActive = false;
+                    sendPlayerPositionUpdate(client, storedPosition);
+
+                    // Notify user
+                    client.inGameHud.setOverlayMessage(Text.of("FlyHack Disabled"), false);
+                }
             }
-        }
-        return 1;
-    }
-
-    private GameMode getGameModeFromInt(int mode) {
-        switch (mode) {
-            case 0:
-                return GameMode.SURVIVAL;
-            case 1:
-                return GameMode.CREATIVE;
-            case 2:
-                return GameMode.ADVENTURE;
-            case 3:
-                return GameMode.SPECTATOR;
-            default:
-                return null;
+        } catch (Exception e) {
+            // Handle exceptions and log errors
+            e.printStackTrace();
+            client.inGameHud.setOverlayMessage(Text.of("Error toggling FlyHack"), false);
         }
     }
 
-    private void registerVanishCommand(CommandDispatcher<ServerCommandSource> dispatcher) {
-        dispatcher.register(net.minecraft.server.command.CommandManager.literal("vanish")
-            .executes(context -> toggleVanish(context)));
+    // Handles movement while fly hack is active
+    private void handleFlyMode(MinecraftClient client) {
+        // Movement is already handled by intercepting packets
+        // Additional logic can be added if necessary
     }
 
-    private int toggleVanish(CommandContext<ServerCommandSource> context) {
-        ServerPlayerEntity player = context.getSource().getPlayer();
-        if (player != null) {
-            UUID playerId = player.getUuid();
-            boolean isVanished = vanishStatuses.getOrDefault(playerId, false);
-            vanishStatuses.put(playerId, !isVanished);
-            updatePlayerVisibility(player, !isVanished);
-            saveVanishStatuses();
-            player.sendMessage(Text.literal((isVanished ? "Unvanished" : "Vanished") + " and made " + (isVanished ? "visible" : "invisible") + ".").formatted(Formatting.YELLOW), true);
-            if (!isVanished) {
-                sendFakeLeaveMessage(player);
-            } else {
-                sendFakeJoinMessage(player);
+    // Sync player's position back to the stored coordinates
+    private void sendPlayerPositionUpdate(MinecraftClient client, Vec3d position) {
+        try {
+            if (client.player != null) {
+                // Create a position packet with the stored position data
+                PlayerMoveC2SPacket.PositionAndOnGround positionPacket = new PlayerMoveC2SPacket.PositionAndOnGround(
+                        position.x,
+                        position.y,
+                        position.z,
+                        true // On ground status
+                );
+
+                // Send the packet to the server to update the player's position
+                client.getNetworkHandler().sendPacket(positionPacket);
             }
-        }
-        return 1;
-    }
-
-    private void updatePlayerVisibility(ServerPlayerEntity player, boolean isVisible) {
-        player.setInvisible(!isVisible);
-        player.setInvulnerable(!isVisible);
-        updateItemsVisibility(player.getInventory().main.toArray(new ItemStack[0]), !isVisible);
-        updateItemsVisibility(player.getInventory().armor.toArray(new ItemStack[0]), !isVisible);
-    }
-
-    private void updateItemsVisibility(ItemStack[] items, boolean isInvisible) {
-        for (ItemStack item : items) {
-            if (!item.isEmpty()) {
-                NbtCompound nbt = item.getOrCreateNbt();
-                nbt.putBoolean("Invisible", isInvisible);
-                item.setNbt(nbt);
-                // Use PacketByteBuf for network transmission
-                PacketByteBuf buffer = new PacketByteBuf(Unpooled.buffer());
-                buffer.writeNbt(nbt);
-                // Here you would send the buffer to the client
-            }
-        }
-    }
-
-    private void sendFakeLeaveMessage(ServerPlayerEntity player) {
-        ServerWorld world = player.getServerWorld();
-        world.getPlayers().forEach(p -> p.sendMessage(Text.literal(player.getDisplayName().getString() + " left the game").formatted(Formatting.YELLOW), false));
-    }
-
-    private void sendFakeJoinMessage(ServerPlayerEntity player) {
-        ServerWorld world = player.getServerWorld();
-        world.getPlayers().forEach(p -> p.sendMessage(Text.literal(player.getDisplayName().getString() + " joined the game").formatted(Formatting.YELLOW), false));
-    }
-
-    private void loadVanishStatuses() {
-        try (Reader reader = new FileReader(VANISH_STATUS_FILE)) {
-            Type type = new TypeToken<Map<UUID, Boolean>>() {}.getType();
-            vanishStatuses = gson.fromJson(reader, type);
-        } catch (IOException e) {
-            System.err.println("Error loading vanish statuses: " + e.getMessage());
-        }
-    }
-
-    private void saveVanishStatuses() {
-        try (Writer writer = new FileWriter(VANISH_STATUS_FILE)) {
-            gson.toJson(vanishStatuses, writer);
-        } catch (IOException e) {
-            System.err.println("Error saving vanish statuses: " + e.getMessage());
+        } catch (Exception e) {
+            // Handle exceptions and log errors
+            e.printStackTrace();
+            client.inGameHud.setOverlayMessage(Text.of("Error sending position update"), false);
         }
     }
 }
