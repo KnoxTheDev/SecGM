@@ -6,6 +6,7 @@ import net.minecraft.client.input.MovementInput;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBinding;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 
 public class SecGM implements ClientModInitializer {
@@ -18,12 +19,13 @@ public class SecGM implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         movementInput = mc.getInput().getMovementInput();
-        KeyBindingHelper.registerKeyBinding(new net.fabricmc.fabric.api.client.keybinding.v1.KeyBinding("FlyHack", net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.getOrCreate("secgm.secgm"), 70)); // F key
+        KeyBinding flyHackKeyBinding = new KeyBinding("FlyHack", KeyBindingHelper.getOrCreate("secgm.secgm"), 70); // F key
+        KeyBindingHelper.registerKeyBinding(flyHackKeyBinding);
         ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
     }
 
     private void onTick() {
-        if (mc.getInput().isKeyPressed(70)) { // F key
+        if (mc.getInput().isKeyPressed(flyHackKeyBinding.getDefaultKey())) { // F key
             if (!freecamEnabled) {
                 storedX = mc.player.getX();
                 storedY = mc.player.getY();
@@ -35,4 +37,15 @@ public class SecGM implements ClientModInitializer {
                 mc.player.noClip = false;
                 mc.player.setPos(storedX, storedY, storedZ);
                 mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(storedX, storedY, storedZ, true));
-                mc.getNetworkHandler().sendPacket(new PlayerMoveC2
+                mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.OnGroundOnly(true)); // Send on-ground packet to disable fall damage
+            }
+        }
+
+        if (freecamEnabled) {
+            movementInput.jump = false;
+            movementInput.sneak = false;
+            movementInput.moveForward = 0;
+            movementInput.moveStrafe = 0;
+        }
+    }
+}
