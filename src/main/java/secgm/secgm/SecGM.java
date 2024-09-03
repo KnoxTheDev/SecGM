@@ -1,21 +1,19 @@
 package secgm.secgm;
 
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.input.Input;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import org.lwjgl.glfw.GLFW;
 
 public class SecGM implements ClientModInitializer {
     private final MinecraftClient mc = MinecraftClient.getInstance();
-    private final Input input = mc.input;
 
     private final KeyBinding flyHackKeyBinding = new KeyBinding(
             "key.secgm.flyhack", // Key description
-            KeyBindingHelper.getOrCreate("secgm.secgm"), // Key category
-            70, // Key code for F key
+            GLFW.GLFW_KEY_F, // F key code
             "category.secgm" // Category
     );
 
@@ -46,11 +44,13 @@ public class SecGM implements ClientModInitializer {
         }
 
         if (freecamEnabled) {
-            // Disable movement by overriding input values
-            input.pressingJump = false;
-            input.pressingSneak = false;
-            input.forwardSpeed = 0.0F;
-            input.sidewaysSpeed = 0.0F;
+            // Disable movement by overriding player controls
+            mc.options.keyJump.setPressed(false);
+            mc.options.keySneak.setPressed(false);
+            mc.options.keyForward.setPressed(false);
+            mc.options.keyLeft.setPressed(false);
+            mc.options.keyBack.setPressed(false);
+            mc.options.keyRight.setPressed(false);
         }
     }
 }
